@@ -1663,3 +1663,18 @@ HV 电池箱 (-18,-60,-121)   stored=0/1600000
 作者确认 S5 验收完成：专用服务器长期运行、多人联机、跨维度与死亡重生、守恒总账、无 Botania 客户端，以及此前各节列在“尚未验证”里的人眼项。
 
 本节只记录这次签收本身，**没有新增逐项证据**。上面的小节保留它们执行当时各自的结论，本节不复述也不覆盖。第九、十轮留下的两条残留仍然有效，日后要按项复核可以从这里开始：`10_`/`11_` 还原 `NoGravity` 的改动尚未复验；高档位（ZPM/IV）在真实 GT 网络里的路由与损耗判定仍未实测（`53_power_flow` 只走了 LV 32 V）。
+
+## 双目标构建：1.20.1 Forge + 1.21.1 NeoForge（2026-10-13）
+
+在 `multiversion` 工作树执行，JDK 21 启动 Gradle，Forge 目标用 JDK 17 toolchain。命令与结果：
+
+| 命令 | 结果 |
+|---|---|
+| `gradlew buildAndCollect` | 成功；两 JAR 通过 `tools/check_target_jar.py` |
+| JUnit（`build` 内） | Forge 272/272，NeoForge 272/272 |
+| `:1.20.1-forge:runGameTestServer`（默认 / `-PwithGtceu=true` / `-PwithBotania=false`） | 各 111/111 |
+| `:1.21.1-neoforge:runGameTestServer`（默认 / `-PwithKubejs=true`） | 111/111 |
+| `python tools/validate_technom_data.py --node 1.21.1-neoforge --require-inventory` | 0 error |
+| `:1.21.1-neoforge:runClient -PclientSmoke=true`（隔离测试世界） | PASS，见多版本状态文档 |
+
+**未通过/未验证：** NeoForge + GTCEu 7.0.2 专用服务端在 GTCEu 自身初始化时崩溃（加载 `ClientLevel`），Technomancy 的 EU 路径在新版未经运行验证；Botania 联动仅 1.20.1；存档跨版本迁移未测试。详见 [多版本状态](MULTIVERSION-STATUS.zh-CN.md)。

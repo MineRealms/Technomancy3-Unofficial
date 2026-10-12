@@ -1,4 +1,4 @@
-# Technomancy Unofficial — Forge 1.20.1
+# Technomancy Unofficial — Forge 1.20.1 / NeoForge 1.21.1
 
 > Magic and science. What can go wrong?
 
@@ -6,7 +6,7 @@
 
 上游版本用 RF（Thermal Expansion / CoFH）作能源。本工程把它换成 **Forge Energy**，并可选接 **GTCEu 的 EU** —— 所有机器同时提供两种能力，接哪条线都行。
 
-这是该模组的**非官方 1.20.1 移植版**：基于官方 Forge MDK 重写实现，对接 **TC4R（Thaumcraft 4 Reborn）**。玩法基准是上游 `37bf9a5` 中实际注册的路径，贴图、模型、数值与行为都按上游对齐；上游处于注释状态、从未注册的内容（精华炮、火系 T3 仪式、精华重构器等）不在范围内。移植已完成，没有遗留的"待迁移"项——逐条状态见[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md)，验收证据见[验证记录](docs/VALIDATION.zh-CN.md)。
+这是该模组的**非官方现代移植版**，对接 **TC4R（Thaumcraft 4 Reborn）**，同一套主要源码分别构建 **Minecraft 1.20.1 Forge** 和 **1.21.1 NeoForge**，不是一个 JAR 通用所有版本。玩法基准是上游 `37bf9a5` 中实际注册的路径；上游处于注释状态、从未注册的内容（精华炮、火系 T3 仪式、精华重构器等）不在范围内。1.20.1 的功能迁移已完成，1.21.1 的运行验证进度及限制见[多版本状态](docs/MULTIVERSION-STATUS.zh-CN.md)。Botania 联动当前仅在 1.20.1 提供。
 
 ## 特色
 
@@ -71,83 +71,83 @@
 |---|---|
 | **TC4R (Thaumcraft 4 Reborn)** | **必需**。玩法本体，源质 / 要素 / 节点 / 仪式 / 注魔 API 都来自它 |
 | **GTCEu** | 选装运行时。九台耗能机器按各自耗电推导电压档位，三台发电机输出 EU；不装时全部退回 FE |
-| **Botania** | 选装。四台机器（花卉发电机、魔力制造器、植物净化器、魔力交换器）+ 魔力流体与桶 + Lexicon 词条；缺席时核心照常启动 |
+| **Botania** | **仅 1.20.1** 选装。四台机器（花卉发电机、魔力制造器、植物净化器、魔力交换器）与 Lexicon 词条；Botania 官方的 1.21.1 移植仍在 `1.21.1-porting` 分支开发、尚无正式发布，因此 1.21.1 暂不打包联动代码与配方，核心照常运行 |
 | **JEI** | 源质燃料值类别 + 38 条用途页 |
 | **Jade** | 15 个方块实体的提示行 |
 | **KubeJS** | 暴露一个只读的 `Technom` 全局，供脚本查询 |
 
 **明确不做**：Blood Magic；Thermal Expansion / CoFH RF 及其专属配方分支（由 FE / EU 取代）。
 
-## 需求
+## 需求与构建目标
 
-| 项目 | 版本 |
-|---|---|
-| Minecraft / Java | 1.20.1 / 17 |
-| Forge / ForgeGradle / Gradle | 47.4.23 / 6.0.54 / 8.8 |
-| 模组 ID / Java 包 | `technom` / `theflogat.technomancy` |
-| TC4R | `0.1.0-20721`，必需 |
-| GTCEu | `7.5.3`，可选运行时 |
-| Curios / TerraBlender | `5.14.1+1.20.1` / `1.20.1-3.0.1.10` |
+| 目标 | Minecraft / Java | Loader | TC4R | GTCEu（选装） |
+|---|---|---|---|---|
+| `1.20.1-forge` | 1.20.1 / 17 | Forge 47.4.23 | 20721 | 7.5.3 |
+| `1.21.1-neoforge` | 1.21.1 / 21 | NeoForge 21.1.259 | 20736 | 7.0.2 |
 
-版本事实以 `gradle.properties` 为准。运行时元数据严格限定当前 TC4R / GTCEu 核对版本，不宣称自动支持其他版本。
+模组 ID 为 `technom`。版本事实以 `versions/<目标>/gradle.properties` 为准，元数据限定核对过的版本，不宣称其它小版本、同版本另一加载器或跨版本世界降级兼容。
 
 ## 构建
 
-需要 JDK 17。使用仓库自带 Gradle Wrapper，不需要另装 Gradle。
+用 **JDK 21 启动 Gradle**，并提供 JDK 17 toolchain 构建 Forge 目标。仓库自带 Gradle 9.4.1 Wrapper、Stonecutter 0.9.8 和 ModDevGradle 2.0.148，无需安装系统 Gradle。
+
+TC4R 是用户私下提供的前置，不随仓库或 Technomancy JAR 分发。将两目标的运行时 JAR/POM 导入 `local-repo/`；旧目标还需要其清单列出的 API/sources。清单为 `local-repo/DEPENDENCIES.json` 与 `local-repo/DEPENDENCIES.1.21.1-neoforge.json`，构建会验证每个 SHA-256。旧版导入工具为 `tools/bootstrap-local-deps.ps1`，不要用它覆盖新版清单。
 
 ```powershell
-Set-Location 'H:\MinecraftMods\Technomancy-1.20.1'
-.\tools\bootstrap-local-deps.ps1
-.\gradlew.bat build --console=plain --no-daemon
+# 一条命令：分别编译、JUnit、检查 JAR，再收集两份成品
+.\gradlew.bat buildAndCollect --console=plain --no-daemon
+
+# 也可只构建一个目标
+.\gradlew.bat :1.20.1-forge:build --console=plain --no-daemon
+.\gradlew.bat :1.21.1-neoforge:build --console=plain --no-daemon
 ```
 
-TC4R 是**用户本地提供的构建产物**，不随仓库分发，所以第一步必须先把它导入 `local-repo/`，方式见 [local-repo/README.md](local-repo/README.md)。其他依赖由 Gradle 下载。成品路径：`build/libs/technom-1.20.1-0.1.0-dev.jar`。
+成功后：
+
+- `build/distributions/technom-1.20.1-forge-0.1.0-dev.jar`
+- `build/distributions/technom-1.21.1-neoforge-0.1.0-dev.jar`
+
+各节点原始发布产物在 `versions/<目标>/build/libs/`；Forge 发布 JAR 经过 `reobfJar`。`buildAndCollect` 只有两个目标都成功才更新收集目录；失败后其中可能仍有旧产物，不应把旧文件当成当次成功。
 
 ```powershell
-# 开发运行时
-.\gradlew.bat runClient
-.\gradlew.bat runServer
-
-# 同一工程加入 GTCEu；不改变编译 API 和发布功能集
-.\gradlew.bat runClient -PwithGtceu=true
-
-# IDE / 数据生成
-.\gradlew.bat genIntellijRuns
-.\gradlew.bat runData
+# 开发运行：始终指定目标，避免意外启动两份实例
+.\gradlew.bat :1.20.1-forge:runClient
+.\gradlew.bat :1.21.1-neoforge:runClient
+.\gradlew.bat :1.21.1-neoforge:runServer
+.\gradlew.bat :1.21.1-neoforge:runClient -PwithGtceu=true -PwithKubejs=true
 ```
 
-代理配置放在本机的 Gradle 用户配置中，项目不保存本机 JDK 路径或代理端口。网络环境确实需要镜像时可以传 `-PmavenCentralMirror=https://maven.aliyun.com/repository/public`。
+运行目录按目标隔离；NeoForge 的目录带 `-1.21.1` 后缀。代理/JDK 绝对路径只放本机配置，不提交到工程。
 
 ## 开发与测试
 
 ```powershell
-.\gradlew.bat build --console=plain --no-daemon                                  # JUnit
-.\gradlew.bat runGameTestServer --console=plain --no-daemon                      # GameTest，默认运行时
-.\gradlew.bat runGameTestServer -PwithGtceu=true --console=plain --no-daemon
-.\gradlew.bat runGameTestServer -PwithBotania=false --console=plain --no-daemon  # Botania 缺席安全
-.\gradlew.bat runGameTestServer -PwithJade=false --console=plain --no-daemon     # Jade 缺席安全
-python tools\validate_technom_data.py                                            # 数据包校验
+.\gradlew.bat :1.20.1-forge:runGameTestServer --console=plain --no-daemon
+.\gradlew.bat :1.21.1-neoforge:runGameTestServer --console=plain --no-daemon
+.\gradlew.bat :1.21.1-neoforge:runGameTestServer -PwithGtceu=true --console=plain --no-daemon
+.\gradlew.bat :1.20.1-forge:runGameTestServer -PwithBotania=false --console=plain --no-daemon
+
+# 检查实际目标资源；--require-inventory 要求已有同目标的 GameTest 注册表清单
+python tools/validate_technom_data.py --node 1.20.1-forge --require-inventory
+python tools/validate_technom_data.py --node 1.21.1-neoforge --require-inventory
 ```
 
-`validate_technom_data.py` 读的是**上一次** `runGameTestServer` 写出的注册表清单，所以要在带 Botania 的那次运行之后跑，否则 Botania 配方里的物品会被误报成"未注册"。
+Forge 数据检查应紧跟**带 Botania 的默认 GameTest**运行，以免误用无 Botania 的注册表清单。NeoForge 清单单独写入 `run-gametest-1.21.1/`。`-PwithGtceu`、`-PwithJade` 和 `-PwithKubejs` 只调整开发运行时；Botania 的 1.21.1 编译隔离与这些运行时开关不同。
 
-**客户端实机探针**：服务端与 GameTest 看不到模型、blockstate 和贴图图集，这部分要拉真客户端跑。用 RosettaRemoteDebugBridge（桥端口 **48791**）：
+### 客户端探针
+
+`tools/client_probe.py` 复用 RosettaRemoteDebugBridge，必须部署**对应 MC/loader** 的 dev-mapped 桥，不能把 Forge 1.20.1 桥直接放进 NeoForge。自动化只操作隔离测试世界，不对玩家存档跑铺方块探针。
 
 ```powershell
-# 非阻塞地把 dev 客户端拉成独立进程（带 GTCEu，quick-join "New World"）
-Start-Process -FilePath .\tools\start_client_detached.cmd -ArgumentList '"New World"','"true"' -WorkingDirectory $PWD
-
-# 等日志出现 "Remote bridge listening on"，再对已运行的客户端跑探针
-python .\tools\client_probe.py probes\client --attach    # PASS/FAIL，退出码 = 失败数
+python tools/client_probe.py probes/client --node 1.20.1-forge --attach
+python tools/client_probe.py <适配目标的探针> --node 1.21.1-neoforge --attach
 ```
 
-`tools/client_probe.py <探针> [--attach]`：每个探针是一段 Java 方法体，经桥在客户端线程执行并自带 PASS/FAIL；`--attach` 只跑探针，不开也不关客户端。
+默认端口分别为 48791 / 48792，可用 `--port` 覆盖；启动运行时要传相同的 `-PclientProbePort`。已有探针含 Forge 专有引用，不因为脚本支持节点选择就宣称全部 NeoForge 探针已适配。实测状态见 VALIDATION / 多版本状态文档。
 
 ### 持续集成
 
-`.github/workflows/build.yml` 在 push / PR 上跑三个 job：`validate`（数据包校验，不需要 TC4R）、`build`（JUnit + `reobfJar` + 成品 jar 检查）、`gametest`（三种运行时的 `runGameTestServer`）。
-
-后两个 **需要仓库变量 `TC4R_ARCHIVE_URL`**（可选密钥 `TC4R_ARCHIVE_TOKEN`）：TC4R 不可再分发，托管 runner 取不到，未配置时它们显示为 **skipped 而不是失败**。归档内容必须与 `local-repo/DEPENDENCIES.json` 一致，`verifyLocalDependencies` 会逐个校验 SHA-256。
+`.github/workflows/build.yml` 包含规范源数据检查、两个节点的构建/JUnit/JAR 检查，以及分节点可选运行时 GameTest 矩阵。构建与 GameTest 需要 `TC4R_ARCHIVE_URL`（可选密钥 `TC4R_ARCHIVE_TOKEN`），私有归档必须包含两个目标各自校验清单所需的前置；没有配置时明确跳过，而不是宣称验证通过。CI 仅上传 Technomancy 产物和测试报告。
 
 ## 工程文档
 
