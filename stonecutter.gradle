@@ -5,6 +5,17 @@ plugins {
 // The canonical source in `src/` is written in the 1.20.1 dialect (see the plan doc, section 6).
 stonecutter.active('1.20.1-forge')
 
+// A failed node never publishes a partial set of artifacts to the collection directory.
+tasks.register('buildAndCollect', Sync) {
+    group = 'build'
+    description = 'Builds, tests and verifies both targets, then collects the two release jars.'
+    dependsOn ':1.20.1-forge:build', ':1.21.1-neoforge:build'
+    from(layout.projectDirectory.dir('versions/1.20.1-forge/build/libs')) { include '*-forge-*.jar' }
+    from(layout.projectDirectory.dir('versions/1.21.1-neoforge/build/libs')) { include '*-neoforge-*.jar' }
+    into layout.buildDirectory.dir('distributions')
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+
 // Stonecutter's default processed extensions do not include plain `json`/`mcmeta`, so resource
 // replacements would silently do nothing. Reusing the json5 comment configuration registers them.
 stonecutter.handlers {
