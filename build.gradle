@@ -58,6 +58,7 @@ if (isForge) {
             }
             client {
                 client()
+                systemProperty 'technom.clientSmoke', providers.gradleProperty('clientSmoke').getOrElse('false')
                 gameDirectory = rootProject.file('run-client')
                 // Automated client testing needs a loaded world: the RosettaRemoteDebugBridge only
                 // starts listening on ServerStartedEvent, which on a client means "a world was
@@ -68,7 +69,7 @@ if (isForge) {
                 }
                 // Its own bridge port, so a client and a dedicated server can be probed at once
                 // without one of them failing to bind. Harmless when the bridge is not installed.
-                systemProperty 'rosetta.remote.port', '48791'
+                systemProperty 'rosetta.remote.port', providers.gradleProperty('clientProbePort').getOrElse('48791')
             }
             server {
                 server()
@@ -261,13 +262,14 @@ if (isForge) {
             }
             client {
                 client()
+                systemProperty 'technom.clientSmoke', providers.gradleProperty('clientSmoke').getOrElse('false')
                 gameDirectory = rootProject.file('run-client-1.21.1')
                 if (project.hasProperty('quickPlay')) {
                     programArgument '--quickPlaySingleplayer'
                     programArgument project.property('quickPlay').toString()
                 }
                 // R9: the two nodes must not share a bridge port. 1.20.1 owns 48791.
-                systemProperty 'rosetta.remote.port', '48792'
+                systemProperty 'rosetta.remote.port', providers.gradleProperty('clientProbePort').getOrElse('48792')
             }
             server {
                 server()
