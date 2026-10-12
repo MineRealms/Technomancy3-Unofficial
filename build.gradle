@@ -282,6 +282,7 @@ if (isForge) {
                 gameDirectory = rootProject.file('run-gametest-1.21.1')
                 // NeoForge renamed the Forge `forge.*` system properties to `neoforge.*`.
                 systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+                systemProperty 'technom.gametest.expectGtceu', withGtceu.toString()
             }
             data {
                 data()
@@ -402,8 +403,44 @@ tasks.register('verifyLocalDependencies') {
 tasks.named('compileJava').configure { dependsOn 'verifyLocalDependencies' }
 tasks.named('check').configure { dependsOn 'verifyLocalDependencies' }
 
+tasks.register('verifyTargetJar', Exec) {
+    group = 'verification'
+    dependsOn 'jar'
+    if (isForge) dependsOn 'reobfJar'
+    def artifact = layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}.jar")
+    inputs.file(artifact)
+    inputs.file(rootProject.file('tools/check_target_jar.py'))
+    commandLine providers.gradleProperty('pythonExecutable').getOrElse('python'),
+            rootProject.file('tools/check_target_jar.py').absolutePath,
+            artifact.get().asFile.absolutePath, '--node', sc.current.project
+}
+tasks.named('build').configure { dependsOn 'verifyTargetJar' }
+
+// A NeoForge mod-loading failure can return exit code zero. Require evidence that
+// the server actually ran tests, rather than accepting the Java process status alone.
+tasks.named('runGameTestServer').configure {
+    doFirst { ext.verificationStartedAt = System.currentTimeMillis() }
+    doLast {
+        def log = rootProject.file(isForge ? 'run-gametest/logs/latest.log'
+                : 'run-gametest-1.21.1/logs/latest.log')
+        if (!log.isFile() || log.lastModified() < verificationStartedAt - 1000L) {
+            throw new GradleException('GameTest produced no fresh server log')
+        }
+        def text = log.getText('UTF-8')
+        def completed = text =~ /(\d+) GAME TESTS COMPLETE/
+        def passed = text =~ /All (\d+) required tests passed/
+        if (!completed.find() || !passed.find() || completed.group(1).toInteger() <= 0
+                || text.contains('required tests failed') || text.contains('Failed to start the minecraft server')) {
+            throw new GradleException("GameTest did not report a completed passing test suite; inspect ${log}")
+        }
+    }
+}
+
 tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
-tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs.addAll(['-Xmaxerrs', '2000'])
+}
