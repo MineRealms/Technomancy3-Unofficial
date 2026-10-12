@@ -453,6 +453,8 @@ Technomancy/
 | **GameTest** | **107/107 全绿**（`All 107 required tests passed`） |
 | **runClient** | **启动到主菜单**（LWJGL 3.3.1 / Forge 47.4.23 / Thaumcraft 4R 初始化 / 音效引擎 / 各贴图图集 / Patchouli 271 jsons / JEI 图集，无 mixin 报错） |
 
+**S0 唯一没有重跑的一环：客户端实机探针（`tools/client_probe.py`）。** 原因不是构建问题：桥接模组（`rosetta_bridge_dev.jar`）是用户手工放进 `run-*/mods/` 的、不入库的产物，探针脚本本身不随本次重构改变；而探针的桥端口固定 **48791**，本机当前已有另一个实例（Isorropia 的探针客户端，`-Drosetta.remote.port=48791`）在跑，会撞端口。`runClient` 本身已证实能起到主菜单，说明客户端侧的工具链装配是好的；探针这一环留到 **S4**（S4 本来就要处理 R9"两节点探针端口区分"）。
+
 **方法论提醒（第一次比对时踩过）：** 直接拿旧 `build/libs/technom-1.20.1-0.1.0-dev.jar`（10-09 从**脏工作区**构建）当基线，会得到 24 个"差异"，全部是假阳性 —— 主仓库工作区里 `*.json` 是 `i/lf w/crlf`（`.gitattributes` 要求 LF），加上基线早于后续提交（Forge 47.4.13→47.4.23、TC4R 20721→20732）和未提交的 WIP 类文件。**正确做法是另开一个干净 worktree、用旧 ForgeGradle 脚本重编一次基线**（`Technomancy-1.20.1-wt/fg6-baseline`），两个构建都来自 HEAD 的 LF checkout，剩下的差异才是真正的工具链差异。
 
 ### S1：接入 1.21.1 节点骨架
@@ -522,6 +524,7 @@ Technomancy/
 - **没有合并 `multiversion` 到 `main`。** 按 §14，要等 S1–S4 把两个节点都打通、CI 矩阵改造完，再决定合并时机。
 - **`src/` 一个字节都没改**（S0 门禁之一）。
 - 没有实现 1.21.1 节点（`build.gradle` 里 `else` 分支只打一行提示），没有写任何替换规则。
+- **没有重跑客户端实机探针**（`tools/client_probe.py`）—— 桥端口 48791 与本机另一个实例冲突，且探针脚本/桥接模组不随本次重构改变。理由见 §10 S0 结果；留到 S4。
 - 没有评估 `compat/` 下 5 个可选模块（GTCEu / Botania / Jade / KubeJS / JEI）在双版本下的取舍——它们各自要跟 1.21.1 的版本，建议整体后置。**已知阻塞**：Botania 目前没有 1.21.1 版本。
 - 工作区里未提交的 TC4R 20721→20732 升级改动未触碰（S0 的基线仍是 20721）。
 
