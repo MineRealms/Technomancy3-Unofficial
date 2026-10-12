@@ -1,6 +1,6 @@
 # 多版本构建管线重构方案：1.20.1 (Forge) + 1.21.1 (NeoForge)
 
-核对日期：2026-10-12。本文是**方案报告**，不含任何代码改动。所有数字都可用文中命令复现，所有关于第三方工具的能力声明都附了出处；未能核实的点在第 11/12 节单独列为风险与待验证项。
+核对日期：2026-10-12；结果回填：2026-10-13。本文最初是**方案报告**，现在同时承载 **S0–S4 的执行结果**（§10 各阶段结果、§12 待验证项的状态、§13/§14）。所有数字都可用文中命令复现，所有关于第三方工具的能力声明都附了出处。
 
 配套文档：[MIGRATION-1.21.1.zh-CN.md](MIGRATION-1.21.1.zh-CN.md)（1.21.1 的 API 迁移面评估）。
 
@@ -14,8 +14,9 @@
 
 ```
 ./gradlew buildAndCollect
-  → build/libs/0.1.0-dev/technom-1.20.1-forge-0.1.0-dev.jar
-  → build/libs/0.1.0-dev/technom-1.21.1-neoforge-0.1.0-dev.jar
+  → versions/1.20.1-forge/build/libs/technom-1.20.1-forge-0.1.0-dev.jar   (reobf)
+  → versions/1.21.1-neoforge/build/libs/technom-1.21.1-neoforge-0.1.0-dev.jar
+  → build/distributions/   （两节点都成功后才收集）
 ```
 
 **为什么是它**：本工程 304 个源文件里，**251 个（83%）在 1.21.1 上的差异是纯机械的**（改包名、改类名、构造器换名、加一个参数、目录改名），只有 **53 个（17%）需要真正的结构性改写**。Stonecutter 的设计目标正是"83% 共享 + 17% 条件化"，而且它提供 **replacements（正则替换）**，能让那 83% 里的绝大多数**在源码里一个字都不用改**。
@@ -567,6 +568,53 @@ Technomancy/
 - CI 改矩阵；文档（`CLAUDE.md` / `README.md` / `docs/*`）同步。
 - **门禁**：两个节点在 CI 上都绿（或在依赖未就位时正确 skipped）。
 
+### S3 结果（2026-10-12/13 实测：两个节点都 `compileJava` 通过）
+
+结构层按"先能力、后级联"落地。新增 `common/platform/` 作为加载器边界：
+`CapabilityAccess`（外部能力查询）、`StackData`（物品自定义数据）、`PlatformVersion`；
+NeoForge 的推送式注册放在节点目录 `versions/1.21.1-neoforge/src/`（`NeoCapabilities`
+/ `NeoGtCapabilities` / `NeoTestCapabilities`）。
+
+其余结构分歧以 `//? if forge/neoforge` 内联条件落在共享源码里：
+
+| 面 | 处理 |
+|---|---|
+| capability | Forge 保留 `getCapability`/`invalidateCaps`；NeoForge 改 `BlockCapability` 查询 + `RegisterCapabilitiesEvent` 推送 + `invalidateCapabilities` |
+| 注册表 | holder 类型改为 `Supplier<...>`（`RegistryObject` 与 `DeferredHolder` 共同满足） |
+| 网络 | `SimpleChannel` → `CustomPacketPayload` + `StreamCodec` + `RegisterPayloadHandlersEvent` |
+| 方块 / 方块实体 | `MapCodec`/`codec()`、`useItemOn`/`useWithoutItem`、`loadAdditional`/`saveAdditional(tag, registries)` |
+| 事件 | `TickEvent` → `PlayerTickEvent.Post`；`DistExecutor` → `FMLEnvironment.dist` |
+| GUI | `RegisterGuiOverlaysEvent` → `RegisterGuiLayersEvent`（`LayeredDraw`） |
+| 物品数据 | `ItemStack#getTag` → `DataComponents.CUSTOM_DATA`（经 `StackData`） |
+
+`stonecutter.gradle` 的替换表补上机械改名（`MinecraftForge`→`NeoForge`、
+`ForgeConfigSpec`→`ModConfigSpec`、`GlassBlock`→`TransparentBlock` 等），并让替换
+**只在 NeoForge 节点**执行（`if (!neo) return`），避免反向规则改写非活动分支里的标识符。
+
+**门禁：通过。** 两个节点 `compileJava` 通过；1.20.1 节点不受影响（新增的都是
+`//? if neoforge` 条件分支，在 Forge 节点被剔除）。
+
+### S4 结果（2026-10-13 实测：两个节点都出成品并跑通运行时）
+
+| 检查 | 结果 |
+|---|---|
+| `gradlew buildAndCollect` | 成功；两份 JAR 均过 `tools/check_target_jar.py` |
+| JUnit | 两节点各 272/272 |
+| Forge GameTest：默认 / `-PwithGtceu=true` / `-PwithBotania=false` | 各 111/111 |
+| NeoForge GameTest：默认 / `-PwithKubejs=true` | 111/111 |
+| NeoForge 数据校验 `--require-inventory` | 0 error |
+| NeoForge 客户端 `-PclientSmoke=true` | PASS（40 方块 / 368 状态 / 71 物品 / 14 自定义物品渲染 / 18 方块实体渲染器） |
+
+为兜住"不报错但行为错"，S4 新增两道门禁：`build` 依赖 `verifyTargetJar`（检查元数据
+展开、字节码 61/65、无 GameTest 类、目录正确），`runGameTestServer` 要求日志里出现
+"完成的、全过的测试套件"（NeoForge 加载失败可能以 0 退出）。
+
+实测中修掉的问题：罐子掉落表在新版无法解析；三个渲染器跨 RenderType 复用已结束的
+缓冲区导致崩溃；NeoForge 兼容层已调用旧 `initializeClient`、额外注册导致重复。
+
+CI 改为两节点矩阵（`build` + `gametest`），TC4R 门禁不变（未设 `TC4R_ARCHIVE_URL`
+时正确 skipped）。**已知限制**见 `docs/MULTIVERSION-STATUS.zh-CN.md` §4。
+
 ---
 
 ## 11. 风险清单
@@ -600,27 +648,29 @@ Technomancy/
 2. ~~**ModDevGradle LegacyForge × Forge 1.20.1 × TC4R**~~ → **已全过**（S0）：编译 + reobfJar + jar 逐字节比对 + `runClient` 到主菜单 + GameTest 107/107。
 3. ~~**ModDevGradle 下的 GameTest 运行类型**~~ → **已全过**（S0 实跑 107/107）。
 4. ~~**Stonecutter Replacements 对 JSON / 资源路径的作用范围**~~ → **已答**：默认不处理 `json`/`mcmeta`，需 `handlers { inherit("json5", ...) }` 注册；注册后替换生效且按节点门控。见 §10 S-1c。
-5. **Stonecutter 的 `versions/<节点>/` 资源覆盖语义**（`src/main/resources` 与节点资源的优先级）→ **仍待验证**（S0 未用到节点级资源；S2/S3 分叉资源时再测）。
+5. **Stonecutter 的 `versions/<节点>/` 资源覆盖语义**（`src/main/resources` 与节点资源的优先级）→ **已绕开**：S3/S4 没有走节点级资源覆盖，而是用 `gradle/neoforge-resources.gradle` 在 NeoForge 节点的 `processResources` 里就地转换（排除 + 重写 + 目录单数化）。只有整文件分叉才需要 `versions/<节点>/src/main/resources`。
 6. ~~**1.21.1 的 TC4R 运行时 jar 是否存在、什么形态**~~ → **已答**：存在（20736 运行时 jar，official mappings，16 内部类齐全）。
 7. **ModDevGradle 的 `mod*` 配置对 TC4R 这种"本地 maven + 非传递"依赖的处理** → **已全过**（S0：`modImplementation` + `transitive = false` 编译并成功进 dev 运行时，TC4R mixin/refmap 正常）。
 8. **`pack.mcmeta` 在 Stonecutter 下的展开方式** → **已答**：用 `handlers { inherit("json5", "mcmeta") }` + 一条 string 替换把 `pack_format` 从 15 换到 34，实测生效；不必再用 Gradle `expand`。**S0 现状**：1.20.1 节点仍用 Gradle `expand`（与单版本行为一致），到 S2 引入替换规则时再切。
 9. ~~**Groovy 控制器下版本条件怎么写**~~ → **已答**（S2）：`parameters {}` 逐节点重放，版本判断必须在**块内**；用 `eval(current.version, '>=1.21')` 得到布尔量，再传给 `string(...)`/`regex(...)` 的 `direction` 位。裸 `current` 在 `constants {}`/`replacements {}` 里会被 `MapProperty.get(String)` 遮蔽。见 §10 S2 结果。
-10. **资源**路径**（目录单数化）怎么改** → **仍未验证**：替换表只作用于文件内容，不作用于路径。S2 收尾时需引入 `Sync`/`Copy` 机制，并确认 `versions/<节点>/src/main/resources` 与生成树的合并优先级（与第 5 项同源）。
+10. **资源**路径**（目录单数化）怎么改** → **已答**：替换表只作用于文件内容，路径改名在 `processResources` 的 `eachFile { details -> details.relativePath = ... }` 里做（`recipes`→`recipe`、`loot_tables`→`loot_table`、`tags` 下的 `items`→`item` 等），见 `gradle/neoforge-resources.gradle`。`pack.mcmeta` 的 `pack_format` 与配方 `result.item`→`result.id` 也在同一处转换。
 
 ---
 
 ## 13. 本次没有做的事
 
-- **`main` 的构建脚本与源码一个字节都没改。** S0 的全部构建改动在 worktree `H:\MinecraftMods\Technomancy-1.20.1-wt\multiversion` + 分支 `multiversion` 上；`main` 的已发货构建脚本仍是 ForgeGradle 6。本文档（规划/记录）仍提交在 `main`，与之前两篇方案文档一致。
-- **没有合并 `multiversion` 到 `main`。** 按 §14，要等 S1–S4 把两个节点都打通、CI 矩阵改造完，再决定合并时机。
-- **`src/` 一个字节都没改**（S0 门禁之一）。
-- 没有实现 1.21.1 节点（`build.gradle` 里 `else` 分支只打一行提示），没有写任何替换规则。
-- **没有重跑客户端实机探针**（`tools/client_probe.py`）—— 桥端口 48791 与本机另一个实例冲突，且探针脚本/桥接模组不随本次重构改变。理由见 §10 S0 结果；留到 S4。
-- 没有评估 `compat/` 下 5 个可选模块（GTCEu / Botania / Jade / KubeJS / JEI）在双版本下的取舍——它们各自要跟 1.21.1 的版本，建议整体后置。**已知阻塞**：Botania 目前没有 1.21.1 版本。
-- 工作区里未提交的 TC4R 20721→20732 升级改动未触碰（S0 的基线仍是 20721）。
+- **没有合并 `multiversion` 到 `main`。** 全部多版本改动在 worktree `H:\MinecraftMods\Technomancy-1.20.1-wt\multiversion` + 分支 `multiversion` 上；`main` 的已发货构建脚本仍是单节点 ForgeGradle 6。合并时机见 §14。
+- **没有做 1.20.1 → 1.21.1 的存档迁移测试**，也不承诺降级。
+- **NeoForge + GTCEu 7.0.2 未跑通**：专用服务端在 GTCEu 自身构造阶段加载客户端类 `ClientLevel` 而崩溃，与 Technomancy 无关，单独启用 GT 也复现；EU 适配代码已编译但未经运行验证，CI 不跑此组合。
+- **Botania 联动只有 1.20.1**：官方 1.21.1 移植仍在 `VazkiiMods/Botania` 的 `1.21.1-porting` 分支开发，Maven/Modrinth 上还没有可依赖的正式版。
+- **没有覆盖其它 1.20.x / 1.21.x 小版本**，也不支持同版本的另一个加载器或"一个 JAR 通用"。
+- **旧 Rosetta 客户端探针只支持 Forge 1.20.1**；新版客户端验证用内置的 `-PclientSmoke=true`（`ClientSmoke`，走 `technom.clientSmoke`）。
 
 ## 14. 下一步
 
-**S0 已完成，全部门禁通过**（见 §10 S0 结果）。按 §10 进 **S1：接入 1.21.1 节点骨架** —— 在 `build.gradle` 的 `else` 分支里应用 `net.neoforged.moddev`（NeoForge 节点），接上 TC4R 1.21.1 的本地工件（20736 运行时 jar），声明 1.21.1 侧的依赖版本（NeoForge 21.1.259 / curios 9.5.1 / TerraBlender 4.1.0.8 / JEI 19.57.0.451 / Jade 15.10.6 等）。此时 `src/` 仍是 1.20.1 形状，1.21.1 节点**必然编译失败**——这是预期的，S1 的门禁只是"`buildAndCollect` 能产出两个 jar（1.21.1 那个可以是失败的构建，但管线结构成立）"。
+**S0–S4 已完成**（见 §10 各阶段结果）：两个节点在同一分支上分别编译、跑 JUnit、跑 GameTest、产出成品，CI 改为两节点矩阵。后续（均未做，按优先级）：
 
-S0 的直接后果是**把 1.20.1 节点的构建工具链从 ForgeGradle 6 换成了 ModDevGradle LegacyForge**（S-1a 判定必须 Gradle 9 带来的，R1）。这次迁移动到了已发货产物，因此放在**独立分支**上做、门禁不过就不合并；现在门禁已全过（R1 化解），可以安全推进 S1。
+1. **合并 `multiversion` → `main`**：待评估 1.21.1 侧的可接受程度后决定；`main` 目前仍是单节点 ForgeGradle 6，合并前要同步 `CLAUDE.md`。
+2. **NeoForge + GTCEu 的运行验证**：等 GTCEu 修复专用服务端加载 `ClientLevel` 的问题。
+3. **Botania 1.21.1**：等官方 `1.21.1-porting` 分支出正式版，按 `docs/MULTIVERSION-STATUS.zh-CN.md` §4 记录的签名差异接回。
+4. **存档迁移**：如需要，评估 1.20.1 → 1.21.1 的存档升级。
