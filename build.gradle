@@ -234,6 +234,17 @@ if (isForge) {
 } else {
     // ---------------------------------------------------------------- 1.21.1 / NeoForge
     apply plugin: 'net.neoforged.moddev'
+    apply from: rootProject.file('gradle/neoforge-resources.gradle')
+
+    sourceSets.main.java {
+        exclude 'theflogat/technomancy/common/blocks/botania/**'
+        exclude 'theflogat/technomancy/common/tiles/botania/**'
+        exclude 'theflogat/technomancy/common/blocks/machines/BoProcessorBlock.java'
+        exclude 'theflogat/technomancy/common/tiles/machines/BoProcessorBlockEntity.java'
+        exclude 'theflogat/technomancy/compat/botania/BotaniaContent.java'
+        exclude 'theflogat/technomancy/gametest/ManaExchangerBotaniaTests.java'
+        exclude 'theflogat/technomancy/mixin/GtceuJeiFluidHelperMixin.java'
+    }
 
     neoForge {
         version = neo_version

@@ -1,0 +1,131 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+// These readers transform complete JSON objects, never arbitrary occurrences of "item".
+class NeoForgeConditionsReader extends FilterReader {
+    private final StringReader converted
+
+    NeoForgeConditionsReader(Reader input) {
+        super(input)
+        def data = new JsonSlurper().parse(input)
+        converted = new StringReader(JsonOutput.prettyPrint(JsonOutput.toJson(convert(data))) + '\n')
+    }
+
+    static Object convert(Object value) {
+        if (value instanceof List) return value.collect { convert(it) }
+        if (!(value instanceof Map)) return value
+        def result = value.collectEntries { key, child -> [(key): convert(child)] }
+        if (result.type instanceof String && result.type.startsWith('forge:')) {
+            result.type = 'neoforge:' + result.type.substring('forge:'.length())
+        }
+        // These are the common ingredient tags used by this mod; both NeoForge and TC4R
+        // publish the corresponding 1.21.1 tags in the c namespace.
+        if (result.tag instanceof String && result.tag.startsWith('forge:')) {
+            result.tag = 'c:' + result.tag.substring('forge:'.length())
+        }
+        if (result.containsKey('forge:conditions')) {
+            result['neoforge:conditions'] = result.remove('forge:conditions')
+        }
+        return result
+    }
+
+    @Override int read() { converted.read() }
+    @Override int read(char[] buffer, int offset, int length) { converted.read(buffer, offset, length) }
+    @Override void close() { converted.close(); super.close() }
+}
+
+class NeoForgeRecipeReader extends FilterReader {
+    private final StringReader converted
+
+    NeoForgeRecipeReader(Reader input) {
+        super(input)
+        def data = NeoForgeConditionsReader.convert(new JsonSlurper().parse(input))
+        if (data.containsKey('conditions')) {
+            data['neoforge:conditions'] = data.remove('conditions')
+        }
+        if (data.result instanceof Map && data.result.containsKey('item')) {
+            data.result.id = data.result.remove('item')
+        }
+        converted = new StringReader(JsonOutput.prettyPrint(JsonOutput.toJson(data)) + '\n')
+    }
+
+    @Override int read() { converted.read() }
+    @Override int read(char[] buffer, int offset, int length) { converted.read(buffer, offset, length) }
+    @Override void close() { converted.close(); super.close() }
+}
+
+class NeoForgeJarLootReader extends FilterReader {
+    private final StringReader converted
+
+    NeoForgeJarLootReader(Reader input) {
+        super(input)
+        def data = new JsonSlurper().parse(input)
+        data.pools.each { pool ->
+            pool.entries.each { entry ->
+                entry.functions = entry.functions.collect { function ->
+                    function.function == 'minecraft:copy_nbt'
+                            ? [function: 'minecraft:copy_components', source: 'block_entity',
+                               include: ['minecraft:block_entity_data']]
+                            : function
+                }
+            }
+        }
+        converted = new StringReader(JsonOutput.prettyPrint(JsonOutput.toJson(data)) + '\n')
+    }
+
+    @Override int read() { converted.read() }
+    @Override int read(char[] buffer, int offset, int length) { converted.read(buffer, offset, length) }
+    @Override void close() { converted.close(); super.close() }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def values = [minecraft_version_range: minecraft_version_range,
+            neo_version_range: neo_version_range, loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+            thaumcraft_runtime_version: thaumcraft_runtime_version, gtceu_version: gtceu_version]
+    inputs.properties values
+    inputs.file(rootProject.file('gradle/neoforge-resources.gradle'))
+    exclude 'META-INF/mods.toml', 'META-INF/MANIFEST.MF', 'technom.mixins.json'
+    exclude 'data/technom/recipes/botania/**', 'assets/botania/**'
+    exclude 'data/technom/loot_tables/blocks/flower_dynamo.json'
+    exclude 'data/technom/loot_tables/blocks/mana_fabricator.json'
+    exclude 'data/technom/loot_tables/blocks/mana_exchanger.json'
+    exclude 'data/technom/loot_tables/blocks/processor_bo.json'
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) { expand values }
+    filesMatching('pack.mcmeta') {
+        filter { line -> line.replace('"pack_format": 15', '"pack_format": 34') }
+    }
+    filesMatching('data/**/recipes/**/*.json') { filter(NeoForgeRecipeReader) }
+    filesMatching('data/**/thaumcraft/**/*.json') { filter(NeoForgeConditionsReader) }
+    filesMatching(['data/technom/loot_tables/blocks/quantum_jar.json',
+                   'data/technom/loot_tables/blocks/essentia_reservoir.json']) {
+        filter(NeoForgeJarLootReader)
+    }
+    eachFile { details ->
+        def parts = details.relativePath.segments.toList()
+        if (parts.size() >= 3 && parts[0] == 'data') {
+            def directories = [recipes: 'recipe', loot_tables: 'loot_table', structures: 'structure',
+                               advancements: 'advancement', functions: 'function']
+            if (directories.containsKey(parts[2])) parts[2] = directories[parts[2]]
+            if (parts[2] == 'tags' && parts.size() >= 4) {
+                def tags = [items: 'item', blocks: 'block', fluids: 'fluid',
+                            entity_types: 'entity_type', game_events: 'game_event', functions: 'function']
+                if (tags.containsKey(parts[3])) parts[3] = tags[parts[3]]
+            }
+            details.relativePath = new RelativePath(true, parts as String[])
+        }
+    }
+    includeEmptyDirs = false
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+
+tasks.named('jar', Jar).configure {
+    exclude 'theflogat/technomancy/gametest/**'
+    exclude 'data/technom/structure/gametest/**'
+    from([rootProject.file('LICENSE'), rootProject.file('NOTICE')]) { into 'META-INF' }
+    manifest {
+        attributes('Implementation-Title': "${rootProject.name}-${minecraft_version}-${mod_loader}",
+                'Implementation-Version': project.version, 'Implementation-Vendor': mod_authors)
+    }
+}
