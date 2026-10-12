@@ -9,12 +9,12 @@ plugins {
 }
 
 // This file is Stonecutter's shared build script: it runs once per node.
-def isForge = sc.current.project.endsWith('-forge')
+def isForge = mod_loader == 'forge'
 
 version = mod_version
 group = mod_group_id
-base { archivesName = "${mod_id}-${sc.current.version}" }
-java.toolchain.languageVersion = JavaLanguageVersion.of(isForge ? 17 : 21)
+base { archivesName = "${mod_id}-${minecraft_version}-${mod_loader}" }
+java.toolchain.languageVersion = JavaLanguageVersion.of(java_version.toInteger())
 
 def withGtceu = providers.gradleProperty('withGtceu').map { it.toBoolean() }.getOrElse(false)
 def withBotania = providers.gradleProperty('withBotania').map { it.toBoolean() }.getOrElse(true)

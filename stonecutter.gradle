@@ -29,7 +29,7 @@ stonecutter.handlers {
 // `eval(version, condition)` is a plain boolean method from `VersionOperations`, so it sidesteps
 // the Kotlin-only `current.parsed >= '1.21'` form as well.
 stonecutter.parameters {
-    def neo = eval(current.version, '>=1.21')
+    def neo = current.project.endsWith('-neoforge')
 
     constants {
         put('forge', !neo)
