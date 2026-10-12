@@ -499,6 +499,63 @@ Technomancy/
 - 同步写资源重定位与配方 JSON 替换。
 - **门禁**：1.21.1 的编译错误集合 ⊆ 那 53 个文件；1.20.1 节点**零回归**（jar 仍与 S0 一致）。
 
+### S2 结果（2026-10-12 实测：替换层跑通；资源层待收尾）
+
+**替换层已跑通并验证**，`src/` 侧的改动只有一处（见第 3 条）。改动文件：
+`stonecutter.gradle`（替换表）、5 个源文件的 `ResourceLocation` 归一化、新增
+`docs/MULTIVERSION-STATUS.zh-CN.md`（进度快照）。
+
+1. **卡点与根因 —— `parameters {}` 是逐节点重放的，不是根项目一次性配置。**
+   Kotlin 写法 `current.parsed >= "1.21"` 在 Groovy 里报
+   `No such property: parsed for class DefaultMapProperty$EntryProvider`，根因有两层：
+   - `constants {}` / `replacements {}` 的 delegate（`ConstantContainer` / `ReplacementContainer`）
+     继承 Gradle 的 `MapProperty`，**暴露 `get(String)`**，于是 Groovy 把裸 `current` 解析成
+     `delegate.get("current")`（一个 `Provider`），而不是 `getCurrent()`。
+   - 把版本判断写在**脚本顶层**只会在**根项目**上求值一次，此时 `current` 是被
+     `stonecutter.active(...)` 钉住的**活动版本**，于是布尔量恒定、两节点都拿不到替换。
+
+   **正确写法**：在 `parameters {}` **块内**用 `def neo = eval(current.version, '>=1.21')`，
+   再传给 `string(neo)` / `regex(neo)`（该布尔量即 `direction`：true = from→to，false = 反向）。
+   验证方法：在块内插 `println` 会**每节点打印一次**，插在顶层只打印一次。
+
+2. **实测数字。** 1.21.1 生成树：残留 `net.minecraftforge.*` **0**、`net.neoforged.*` 59 个不同项、
+   残留 `new ResourceLocation(` **0**、`fromNamespaceAndPath(` 55 处、双重前缀 **0**。
+   1.21.1 编译（`-Xmaxerrs` 放开后）：**755 个错误 / 124 个文件**，全部是结构性的。
+
+   | 缺失项 | 行数 | 性质 |
+   |---|---|---|
+   | `common.util.LazyOptional` | 44 | 1.21.1 已移除 |
+   | `capabilities.Capability` | 44 | 拆成 `BlockCapability`/`ItemCapability`/`EntityCapability` |
+   | `vazkii.botania.api.*` | 24 | Botania 无 1.21.1 构建 |
+   | `event.TickEvent` | 8 | 拆分 |
+   | `network.*`（`NetworkEvent`/`SimpleChannel`） | 12 | 改 payload/codec 模型 |
+   | `fml.*`（`DistExecutor`/`FMLJavaModLoadingContext`） | 10 | 已删除/移位 |
+   | `event.AttachCapabilitiesEvent` | 4 | 改 `RegisterCapabilitiesEvent`（推模型） |
+   | `gtceu.*` | 8 | 可选模块，1.21.1 API 不同 |
+   | `client.gui.overlay.*` | 2 | 改 `LayeredDraw` + `RegisterGuiLayersEvent` |
+   | `registries.ForgeRegistries` | 4 | 改名/移位 |
+
+3. **门禁判读 —— 计划书的「53 个文件」需要校正（但不是动手面被低估）。**
+   同时 import `LazyOptional` 与 `Capability` 的文件恰是**同一批 22 个**（重叠 100%），
+   与计划书"去重后是同一批机器类"的估算吻合。其余 ~102 个文件是**级联失败**
+   （自己不 import 被删的类，但引用上述 22 个文件的类型/方法）。所以：
+   **观测报错文件数 124 ≠ 真正要动手的文件数（≈22 能力 + ≈30 其它结构）。**
+   修好那 22 个能力文件后级联会成片消失。
+
+4. **顺带修正：规范源里的 API 混用破坏了 1.20.1 直通性。**
+   `src/` 有 5 个文件共 8 处写的是 `ResourceLocation.fromNamespaceAndPath(...)`。Forge 1.20.1
+   **反移植**了该工厂（字节码就是 `new ResourceLocation(ns, path)` 的别名），所以 1.20.1 上也能编译
+   —— 但反向规则会把它改回 `new ResourceLocation(...)`，使 1.20.1 生成树 ≠ `src/`。
+   已统一回 `new ResourceLocation(...)`，直通性恢复。
+
+5. **门禁结果：**
+   - **1.20.1 零回归：通过。** 生成树与 `src/` **逐字节 0 差异**；`test` **267/267 全绿**。
+   - **1.21.1 编译错误 ⊆ 结构面：通过（按性质）。** 755 个错误全部落在上表的结构桶里，
+     没有残留的"纯机械"错误。
+   - **资源层未做**：目录单数化（119 文件）、配方 `result.item`→`result.id`（68 文件）、
+     `pack_format` 15→34 —— 替换表作用于**内容**而非**路径**，目录改名需单独的 `Sync` 机制。
+     详见 `docs/MULTIVERSION-STATUS.zh-CN.md` §3.1。
+
 ### S3：结构层（第 2/3 层）
 
 - capability 重设计（最大的一块）、TickEvent、DistExecutor、主类构造器、网络重写、GUI overlay、`openScreen`。
@@ -530,6 +587,8 @@ Technomancy/
 | **R10** | 条件注释密度失控，源码可读性下降 | 中 | 中 | 严守三层机制：能替换的不写条件；整段不同的进 `versions/<节点>/src` |
 | **R11** | 替换规则写在 `build.gradle.kts` 里被**静默忽略**；资源扩展名未注册 handler 导致替换"看着写了却不生效" | **高**（已踩） | 中（排查成本高） | **已固化**：替换一律写在 `stonecutter.gradle.kts` 的 `parameters { replacements {} }`；`json`/`mcmeta`/`toml` 等必须 `handlers { inherit(...) }` 注册。见 §10 S-1c 陷阱表 |
 | **R12** | 换到 MDG 后"不报错但行为错"的配置坑（相对路径按节点目录解析、test 源集缺 Minecraft、测试工作目录、手写 `mixin.env.*` 覆盖 MDG 默认值、`project.name` 变成节点名） | **高**（S0 已全部踩到） | 中 | **已固化**：5 处修法见 §10 S0 结果表；门禁里"jar 逐字节比对 + GameTest + runClient"正是用来兜住这类静默差异的 |
+| **R13** | 替换规则的**方向位在错误的位置求值**：`parameters {}` 是逐节点重放的，版本判断写在**脚本顶层**会退化成"根项目一次性求值"，于是布尔量被钉死、两个节点都拿不到替换（**不报错**，只是静默不生效） | **高**（S2 已踩） | 高（"写了却不生效"类，排查成本高） | **已固化**：版本判断一律写在 `parameters {}` **块内**（`def neo = eval(current.version, '>=1.21')`）；门禁用"1.20.1 生成树与 `src/` 逐字节 0 差异"兜住。见 §10 S2 结果第 1 条 |
+| **R14** | **规范源 API 混用**破坏"1.20.1 节点 = 源码直通"不变式：源码里若出现 1.20.1 Forge 反移植的 API（如 `ResourceLocation.fromNamespaceAndPath`），反向替换会把它改回去，使生成树 ≠ `src/` | 中（S2 已踩：5 文件 8 处） | 中 | **已固化**：`src/` 一律写成 1.20.1 方言；门禁加一条"1.20.1 生成树 vs `src/` 逐字节比对 = 0 差异" |
 
 ---
 
@@ -545,6 +604,8 @@ Technomancy/
 6. ~~**1.21.1 的 TC4R 运行时 jar 是否存在、什么形态**~~ → **已答**：存在（20736 运行时 jar，official mappings，16 内部类齐全）。
 7. **ModDevGradle 的 `mod*` 配置对 TC4R 这种"本地 maven + 非传递"依赖的处理** → **已全过**（S0：`modImplementation` + `transitive = false` 编译并成功进 dev 运行时，TC4R mixin/refmap 正常）。
 8. **`pack.mcmeta` 在 Stonecutter 下的展开方式** → **已答**：用 `handlers { inherit("json5", "mcmeta") }` + 一条 string 替换把 `pack_format` 从 15 换到 34，实测生效；不必再用 Gradle `expand`。**S0 现状**：1.20.1 节点仍用 Gradle `expand`（与单版本行为一致），到 S2 引入替换规则时再切。
+9. ~~**Groovy 控制器下版本条件怎么写**~~ → **已答**（S2）：`parameters {}` 逐节点重放，版本判断必须在**块内**；用 `eval(current.version, '>=1.21')` 得到布尔量，再传给 `string(...)`/`regex(...)` 的 `direction` 位。裸 `current` 在 `constants {}`/`replacements {}` 里会被 `MapProperty.get(String)` 遮蔽。见 §10 S2 结果。
+10. **资源**路径**（目录单数化）怎么改** → **仍未验证**：替换表只作用于文件内容，不作用于路径。S2 收尾时需引入 `Sync`/`Copy` 机制，并确认 `versions/<节点>/src/main/resources` 与生成树的合并优先级（与第 5 项同源）。
 
 ---
 
