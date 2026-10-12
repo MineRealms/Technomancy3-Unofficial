@@ -380,6 +380,44 @@ Technomancy/
 - **能跑 8.8** → 1.20.1 节点保留 ForgeGradle 6，两个节点用两套不同插件。**风险降到最低**，直接进 S0。
 - **必须 Gradle 9** → 1.20.1 节点换 LegacyForge。此时以 S-1b 的结论为准：S-1b 过，进 S0；S-1b 不过，**回到方案 B**（两个独立构建）或把 1.21.1 单独做一个仓库。
 
+### S-1 结果（2026-10-12 实测完成）
+
+三个 spike 全部跑完，落点在 `H:\MinecraftMods\_spikes\`（`sc-gradle/`、`mdg-1201/`、`sc-replace/`），不进主仓库。
+
+**S-1a — Stonecutter × Gradle 版本下限：走"必须 Gradle 9"分支。**
+
+- Stonecutter **0.9.8 与 0.8.4 在 Gradle 8.8 上均报 `Stonecutter requires at least Gradle 9`**；**0.7.11 是最后一个能跑在 8.8 上的版本**（实测）。0.9.8 在 Gradle 9.4.1 上正常。
+- 结论：**R3 成立，R1 被激活** —— 1.20.1 节点不能留在 ForgeGradle 6 + Gradle 8.8，必须换 LegacyForge（见 §0 的推荐路径）。若不接受这个迁移，退路是 Stonecutter 0.7.11 + Gradle 8.8（放弃 0.8+ 的 `handlers {}` 自定义文件格式，见 S-1c）。
+
+**S-1b — ModDevGradle LegacyForge 复现 1.20.1 构建：核心通过。**
+
+- `net.neoforged.moddev.legacyforge` **2.0.148** 在 **Gradle 9.4.1** 上：能解析 `1.20.1-47.4.23`、能用 `modCompileOnly("dev.tc4port:thaumcraft-forge:0.1.0-20721") { transitive = false }` 对着本地 TC4R 编译、`jar` 产出 `build/libs/*.jar`（经 `reobfJar`）+ `build/devlibs/*.jar`。
+- `gameTestServer` 是合法 run 类型，MDG 能注册（`type = 'gameTestServer'` + `systemProperty 'forge.enabledGameTestNamespaces', ...`）。**R2 降级**（可注册 ≠ 已跑通，实际 GameTest 执行仍待 S4）。
+- 未验证：`runClient` 真正起来、以及真实 GameTest 用例执行。S0 的门禁里要补这两项。
+
+**S-1c — Replacements 对 JSON/资源的覆盖：通过，但有一组必须记住的 API 陷阱。**
+
+| 陷阱 | 事实 | 后果 |
+|---|---|---|
+| **声明位置** | 替换必须写在 `stonecutter.gradle.kts` 的 `stonecutter parameters { replacements { ... } }` 里。写在 `build.gradle.kts` 的 `stonecutter { replacements { ... } }` **会被静默忽略**（不报错、不生效） | 极易浪费整段时间排查"为什么替换没作用" |
+| **regex 必须给反向** | `regex { replace(from, to) }` 两参形式抛 `Cannot query the value of property 'reversePattern'`。必须用四参 `replace(from, to, reverseFrom, reverseTo)` 或 `Pair` 重载 | 规则表要成对写 |
+| **string 的语义** | `string(方向条件) { replace(from, to) }` 首参是**方向**（bidirectional）；两参形式即可用 | 反向由方向位自动处理 |
+| **资源默认不处理** | 默认被处理的扩展名只有 `java/scala/json5/fsh/vsh/kt/kts/yml/yaml/aw/accesswidener/cfg`。**纯 `json`、`mcmeta`、`toml`、`properties`、`xml` 都不在其中** | 配方/`pack.mcmeta`/`mods.toml` 的替换默认全不生效 |
+| **启用资源的正解** | `stonecutter handlers { inherit("json5", "json"); inherit("json5", "mcmeta") }`（`handlers {}` 需 0.8+） | 注册后替换即覆盖到资源 |
+| **不要用 `filters` 加文件** | 官方明确：`filters` **只能 exclude，不能 include**（include 会在构建期报错，且有未定义副作用） | 别走这条死路 |
+
+- 实测对照（同一份源，两个节点各生成一次）：
+
+  | 源 | 1.20.1-forge（对照） | 1.21.1-neoforge |
+  |---|---|---|
+  | `Sample.java` | `net.minecraftforge.common.MinecraftForge` / `new ResourceLocation(` | `net.neoforged.neoforge.common.NeoForge` / `ResourceLocation.fromNamespaceAndPath(` |
+  | `pack.mcmeta` | `"pack_format": 15` | `"pack_format": 34` |
+  | `widget.json` | `"result": { "item": ...` | `"result": { "id": ...` |
+
+- 结论：**第 1 层（声明式替换）能覆盖源码与资源**，前提是先把要处理的资源扩展名注册成 handler。原方案 §5 里"若 Replacements 对 JSON 支持不足就退回 Copy+Python"的退路**不需要启用**。
+- 附注：`.json` 走 `json5` 配置意味着 `//` 会被当注释；**条件注释**（`//? if`）在 JSON 里会破坏语法（false 分支会被注释成非法 JSON），所以 JSON 侧**只用替换、不用条件**；需要整文件分叉的配方一律进 `versions/<节点>/src/main/resources`（第 3 层）。
+
+
 ### S0：仓库重构，只保留 1.20.1 节点
 
 - 引入 Stonecutter，声明**两个**节点，但只让 `1.20.1-forge` 可用（另一个先空着）。
@@ -418,39 +456,44 @@ Technomancy/
 
 | # | 风险 | 可能性 | 影响 | 缓解 |
 |---|---|---|---|---|
-| **R1** | 1.20.1 节点从 ForgeGradle 6 换到 LegacyForge，构建行为出现差异 | 中 | **高**（动到已发货产物） | S-1a 优先；S0 的 jar 逐项比对门禁；若 S-1a 允许留在 8.8 则此风险消失 |
-| **R2** | ModDevGradle 下 **GameTest 运行类型不可用** | 中 | 中（丢 30 个 GameTest） | S-1b 实测；退路：GameTest 只留在 1.20.1 节点（若它保留 ForgeGradle），1.21.1 用 DEV 客户端探针覆盖 |
-| **R3** | Stonecutter 0.9.8 的 Gradle 下限高于 8.8 | 中 | 中（触发 R1） | S-1a 直接回答；可先试 8.14，再试 9.x |
-| **R4** | 1.21.1 的 TC4R **运行时 jar 缺失** | **已发生** | **阻塞** | 外部依赖，需用户提供；S1 之前必须解决 |
+| **R1** | 1.20.1 节点从 ForgeGradle 6 换到 LegacyForge，构建行为出现差异 | 中 | **高**（动到已发货产物） | **已激活**（S-1a 判定必须 Gradle 9）；S-1b 已证能编译 + reobfJar；S0 的 jar 逐项比对门禁 + `runClient`/GameTest 实测是最终防线 |
+| **R2** | ModDevGradle 下 **GameTest 运行类型不可用** | 低 | 中（丢 30 个 GameTest） | **已降级**：S-1b 证实 `gameTestServer` 可注册；实际用例执行留待 S4 实测 |
+| **R3** | Stonecutter 0.9.8 的 Gradle 下限高于 8.8 | — | 中（触发 R1） | **已确认为真**：0.9.8/0.8.4 需 Gradle 9，0.7.11 是 8.8 的最后可用版本。已接受"上 Gradle 9 + LegacyForge" |
+| **R4** | 1.21.1 的 TC4R **运行时 jar 缺失** | — | — | **已解除**：`1.21.1-neoforge-20736.zip` 含 4 个运行时 jar（`thaumcraft-neoforge-4.2.3.5-1.21.1-port.0.1.0-20736.jar`，18.5 MB），16 个内部类齐全，且为 **official mappings（0 个 SRG 名）**，无需重映射 |
 | **R5** | `fg.deobf` → `mod*` 重映射配置的语义差异（**非传递**） | 低 | 中 | 现有代码已大量 `transitive = false`，语义吻合；逐个依赖核对 |
 | **R6** | Stonecutter 默认 Kotlin DSL，本工程是 Groovy DSL | 低 | 低 | 文档明确支持 `kotlinController = false` + `centralScript = "build.gradle"` |
 | **R7** | mixin refmap 在两个工具链下行为不同 | 低 | 中 | 本工程只有 1 个 mixin，且是 GTCEu/JEI 兼容 shim，1.21.1 侧大概率整体作废 |
 | **R8** | 两个节点的 `src/generated/resources` 互相覆盖 | 中 | 低 | 按节点分目录 |
 | **R9** | 两个 DEV 客户端端口冲突 | 高 | 低 | 探针端口按节点区分（48791 / 48792） |
 | **R10** | 条件注释密度失控，源码可读性下降 | 中 | 中 | 严守三层机制：能替换的不写条件；整段不同的进 `versions/<节点>/src` |
+| **R11** | 替换规则写在 `build.gradle.kts` 里被**静默忽略**；资源扩展名未注册 handler 导致替换"看着写了却不生效" | **高**（已踩） | 中（排查成本高） | **已固化**：替换一律写在 `stonecutter.gradle.kts` 的 `parameters { replacements {} }`；`json`/`mcmeta`/`toml` 等必须 `handlers { inherit(...) }` 注册。见 §10 S-1c 陷阱表 |
 
 ---
 
 ## 12. 需要先验证的事项（清单）
 
-按顺序做，每一项都能独立否掉后续：
+按顺序做，每一项都能独立否掉后续。**S-1 已把 1/2/4/6 钉死，状态如下：**
 
-1. **Stonecutter 0.9.8 × Gradle 8.8**（决定 R1 是否成立）。
-2. **ModDevGradle LegacyForge × Forge 1.20.1 × TC4R**（决定 1.20.1 节点能否安全迁移）。
-3. **ModDevGradle 下的 GameTest 运行类型**（决定验证装置是否完整）。
-4. **Stonecutter Replacements 对 JSON / 资源路径的作用范围**（决定第 1 层能覆盖多少）。
-5. **Stonecutter 的 `versions/<节点>/` 资源覆盖语义**（`src/main/resources` 与节点资源的优先级）。
-6. **1.21.1 的 TC4R 运行时 jar 是否存在、什么形态**（外部依赖，阻塞 S1）。
-7. **ModDevGradle 的 `mod*` 配置对 TC4R 这种"本地 maven + 非传递"依赖的处理**。
-8. **`pack.mcmeta` 在 Stonecutter 下的展开方式**（现在是 Gradle `expand`，两版本的 `pack_format` 不同）。
+1. ~~**Stonecutter 0.9.8 × Gradle 8.8**~~ → **已答**：0.9.8/0.8.4 需 Gradle 9，0.7.11 是 8.8 最后可用版。R1 激活。
+2. **ModDevGradle LegacyForge × Forge 1.20.1 × TC4R** → **核心已过**（编译 + reobfJar + `gameTestServer` 注册）；`runClient` 与真实 GameTest 执行待 S0 门禁补测。
+3. **ModDevGradle 下的 GameTest 运行类型** → **可注册已证**；能否实际跑通用例待 S4。
+4. ~~**Stonecutter Replacements 对 JSON / 资源路径的作用范围**~~ → **已答**：默认不处理 `json`/`mcmeta`，需 `handlers { inherit("json5", ...) }` 注册；注册后替换生效且按节点门控。见 §10 S-1c。
+5. **Stonecutter 的 `versions/<节点>/` 资源覆盖语义**（`src/main/resources` 与节点资源的优先级）→ **待验证**（S0 起验证）。
+6. ~~**1.21.1 的 TC4R 运行时 jar 是否存在、什么形态**~~ → **已答**：存在（20736 运行时 jar，official mappings，16 内部类齐全）。
+7. **ModDevGradle 的 `mod*` 配置对 TC4R 这种"本地 maven + 非传递"依赖的处理** → **已初步验证**（`modCompileOnly` + `transitive = false` 编译通过）；运行时装配待 S1。
+8. **`pack.mcmeta` 在 Stonecutter 下的展开方式** → **已答**：用 `handlers { inherit("json5", "mcmeta") }` + 一条 string 替换把 `pack_format` 从 15 换到 34，实测生效；不必再用 Gradle `expand`。
 
 ---
 
 ## 13. 本次没有做的事
 
-- 没有改动任何源码、构建脚本或资源文件。
-- 没有创建分支、没有安装任何插件、没有跑任何 spike。
-- 没有验证 Stonecutter 在本机的可用性（Gradle 缓存里没有 Stonecutter 的任何痕迹）。
-- 没有验证 ModDevGradle 的实际行为（缓存里有 `moddev-gradle-2.0.141.jar`，说明本机某个工程解析过它，但没有证据表明它被成功使用过）。
-- 没有评估 `compat/` 下 5 个可选模块（GTCEu / Botania / Jade / KubeJS / JEI）在双版本下的取舍——它们各自要跟 1.21.1 的版本，建议整体后置。
+- 没有改动**主仓库**的任何源码、构建脚本或资源文件（S-1 的三个 spike 全在 `H:\MinecraftMods\_spikes\` 里，一次性、不入库）。
+- 没有创建分支、没有向主仓库安装任何插件。
+- 没有评估 `compat/` 下 5 个可选模块（GTCEu / Botania / Jade / KubeJS / JEI）在双版本下的取舍——它们各自要跟 1.21.1 的版本，建议整体后置。**已知阻塞**：Botania 目前没有 1.21.1 版本。
 - 工作区里未提交的 TC4R 20721→20732 升级改动未触碰。
+
+## 14. S-1 之后的下一步
+
+S-1 全部通过，按 §10 进 **S0：仓库重构，只保留 1.20.1 节点**（引入 Stonecutter + 把 1.20.1 节点从 ForgeGradle 6 迁到 ModDevGradle LegacyForge，`src/` 零改动，用"jar 内容一致 + `runClient` + GameTest 全绿"做门禁）。
+
+S0 直接后果是**把 1.20.1 节点的构建工具链从 ForgeGradle 6 换成 ModDevGradle LegacyForge**（S-1a 判定必须 Gradle 9 带来的，R1）。这是一次动到已发货产物的迁移，所以 S0 在**独立分支**上做，门禁不过就不合并。
