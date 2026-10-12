@@ -71,8 +71,18 @@ public final class S3TreasureGameTests {
         return villager;
     }
 
+    private static LivingHurtEvent damageEvent(net.minecraft.world.entity.LivingEntity entity,
+            net.minecraft.world.damagesource.DamageSource source, float amount) {
+        //? if forge {
+        return new LivingHurtEvent(entity, source, amount);
+        //?} else {
+        /*return new net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent(entity,
+                new net.neoforged.neoforge.common.damagesource.DamageContainer(source, amount));
+        *///?}
+    }
+
     private static LivingHurtEvent meleeFrom(ServerLevel level, Villager victim, Zombie attacker) {
-        return new LivingHurtEvent(victim, level.damageSources().mobAttack(attacker), 5.0F);
+        return damageEvent(victim, level.damageSources().mobAttack(attacker), 5.0F);
     }
 
     /** Whether any treasure item entity lies within a few blocks of the given position. */
@@ -102,7 +112,7 @@ public final class S3TreasureGameTests {
         S2StorageGameTests.check(helper, !melee.isCanceled(), "a melee hit is not fire damage, so it stands");
         S2StorageGameTests.check(helper, attacker.isOnFire(), "the fire gem did not set its attacker alight");
 
-        LivingHurtEvent fire = new LivingHurtEvent(carrier, level.damageSources().inFire(), 5.0F);
+        LivingHurtEvent fire = damageEvent(carrier, level.damageSources().inFire(), 5.0F);
         TreasureEvents.applyWard(carrier, fire);
         S2StorageGameTests.check(helper, fire.isCanceled(), "the fire gem did not swallow fire damage");
         helper.succeed();
@@ -120,7 +130,7 @@ public final class S3TreasureGameTests {
         Villager control = villagerAt(helper, new BlockPos(3, 1, 2));
 
         TreasureEvents.applyWard(carrier,
-                new LivingHurtEvent(carrier, level.damageSources().generic(), 5.0F));
+                damageEvent(carrier, level.damageSources().generic(), 5.0F));
 
         MobEffectInstance effect = carrier.getEffect(MobEffects.DAMAGE_RESISTANCE);
         S2StorageGameTests.check(helper,

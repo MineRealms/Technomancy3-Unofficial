@@ -9,7 +9,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import net.minecraftforge.items.IItemHandler;
@@ -149,7 +148,7 @@ public final class S2ProcessingGameTests {
         TcProcessorBlockEntity processor = place(helper);
         processor.items().setStackInSlot(ProcessorBlockEntity.SLOT_OUTPUT, purified(0, 1));
         for (Direction face : Direction.values()) {
-            IItemHandler view = processor.getCapability(ForgeCapabilities.ITEM_HANDLER, face).orElse(null);
+            IItemHandler view = theflogat.technomancy.common.platform.CapabilityAccess.items(processor, face);
             helper.assertTrue(view != null, face + ": no item handler at all");
             helper.assertTrue(view.getSlots() == ProcessorBlockEntity.SLOTS, face + ": wrong slot count");
 
@@ -178,7 +177,7 @@ public final class S2ProcessingGameTests {
             helper.assertTrue(processor.takeEssentia(TcProcessorBlockEntity.IGNIS, 1, face,
                     EssentiaTransferMode.EXECUTE) == 0, face + ": handed fuel back out");
         }
-        IItemHandler internal = processor.getCapability(ForgeCapabilities.ITEM_HANDLER, null).orElse(null);
+        IItemHandler internal = theflogat.technomancy.common.platform.CapabilityAccess.items(processor, null);
         helper.assertTrue(internal != null, "no side-less item handler");
         helper.assertTrue(internal.insertItem(ProcessorBlockEntity.SLOT_OUTPUT, purified(0, 1), true)
                         .isEmpty(),
@@ -215,7 +214,7 @@ public final class S2ProcessingGameTests {
         CompoundTag tag = new CompoundTag();
         progress.save(tag);
         if (!tag.isEmpty()) {
-            stack.setTag(tag);
+            theflogat.technomancy.common.platform.StackData.write(stack, tag);
         }
         return stack;
     }

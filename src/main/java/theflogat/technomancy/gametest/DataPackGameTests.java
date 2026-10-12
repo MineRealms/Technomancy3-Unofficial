@@ -41,7 +41,6 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
-import net.minecraftforge.registries.ForgeRegistries;
 import theflogat.technomancy.Technomancy;
 
 /**
@@ -208,7 +207,7 @@ public final class DataPackGameTests {
     }
 
     private static boolean itemRegistered(String id) {
-        return ForgeRegistries.ITEMS.containsKey(new ResourceLocation(id));
+        return BuiltInRegistries.ITEM.containsKey(ResourceLocation.tryParse(id));
     }
 
     private static boolean gateOpen(List<String> requires) {
@@ -225,7 +224,11 @@ public final class DataPackGameTests {
         for (ExpectedRecipe expected : expectedRecipes()) {
             boolean gated = expected.requires() != null;
             boolean open = !gated || itemRegistered(expected.requires());
+            //? if forge {
             Optional<? extends Recipe<?>> found = manager.byKey(expected.id());
+            //?} else {
+            /*Optional<? extends Recipe<?>> found = manager.byKey(expected.id()).map(net.minecraft.world.item.crafting.RecipeHolder::value);
+            *///?}
 
             if (!open) {
                 // The forge:item_exists condition must have removed it silently. If the
@@ -248,7 +251,7 @@ public final class DataPackGameTests {
                             + expected.serializer());
 
             ItemStack result = recipe.getResultItem(registries);
-            ResourceLocation resultId = ForgeRegistries.ITEMS.getKey(result.getItem());
+            ResourceLocation resultId = BuiltInRegistries.ITEM.getKey(result.getItem());
             helper.assertTrue(expected.result().equals(String.valueOf(resultId)),
                     expected.id() + " produces " + resultId + " instead of " + expected.result());
             helper.assertTrue(result.getCount() == expected.resultCount(), expected.id()
@@ -264,7 +267,7 @@ public final class DataPackGameTests {
             Set<String> accepted = new TreeSet<>();
             for (Ingredient ingredient : ingredients) {
                 for (ItemStack candidate : ingredient.getItems()) {
-                    accepted.add(String.valueOf(ForgeRegistries.ITEMS.getKey(candidate.getItem())));
+                    accepted.add(String.valueOf(BuiltInRegistries.ITEM.getKey(candidate.getItem())));
                 }
             }
             helper.assertTrue(accepted.equals(new TreeSet<>(expected.acceptedItems())),
@@ -366,15 +369,15 @@ public final class DataPackGameTests {
     @GameTest(template = GameTestTemplates.EMPTY_5X5X5, batch = BATCH)
     public static void s1bObjectAspectsResolveThroughAspectQueryApi(GameTestHelper helper) {
         expectedAspects().forEach((id, wanted) -> {
-            ResourceLocation itemId = new ResourceLocation(id);
-            if (!ForgeRegistries.ITEMS.containsKey(itemId)) {
+            ResourceLocation itemId = ResourceLocation.tryParse(id);
+            if (!BuiltInRegistries.ITEM.containsKey(itemId)) {
                 // Unknown ids in a thaumcraft/object_aspects file are a hard IllegalStateException
                 // that kills the whole file, which is why the two pending blocks live in their own
                 // condition-gated files. Nothing to assert until they are registered.
                 return;
             }
             AspectAmounts resolved =
-                    AspectQueryApi.item(new ItemStack(ForgeRegistries.ITEMS.getValue(itemId)));
+                    AspectQueryApi.item(new ItemStack(BuiltInRegistries.ITEM.get(itemId)));
             Map<AspectId, Integer> expected = new LinkedHashMap<>();
             wanted.forEach((aspect, amount) -> {
                 AspectId parsed = AspectId.parse(aspect);
@@ -400,7 +403,7 @@ public final class DataPackGameTests {
         root.addProperty("format", 1);
         root.addProperty("mod_id", Technomancy.MOD_ID);
 
-        root.add("items", strings(ForgeRegistries.ITEMS.getKeys().stream()
+        root.add("items", strings(BuiltInRegistries.ITEM.keySet().stream()
                 .map(ResourceLocation::toString).toList()));
         root.add("item_tags", strings(BuiltInRegistries.ITEM.getTagNames()
                 .map(tag -> tag.location().toString()).sorted().toList()));
@@ -414,11 +417,19 @@ public final class DataPackGameTests {
         RecipeManager manager = helper.getLevel().getServer().getRecipeManager();
         JsonObject recipes = new JsonObject();
         manager.getRecipes().forEach(recipe -> {
+            //? if forge {
             ResourceLocation id = recipe.getId();
+            //?} else {
+            /*ResourceLocation id = recipe.id();
+            *///?}
             if (Technomancy.MOD_ID.equals(id.getNamespace())) {
                 recipes.addProperty(id.toString(),
                         String.valueOf(BuiltInRegistries.RECIPE_SERIALIZER
+                                //? if forge {
                                 .getKey(recipe.getSerializer())));
+                                //?} else {
+                                /*.getKey(recipe.value().getSerializer())));
+                                *///?}
             }
         });
         root.add("mod_recipes", recipes);
@@ -439,7 +450,7 @@ public final class DataPackGameTests {
             return;
         }
         Technomancy.LOGGER.info("GameTest wrote registry inventory to {} ({} items, {} recipes,"
-                + " {} research entries)", target, ForgeRegistries.ITEMS.getKeys().size(),
+                + " {} research entries)", target, BuiltInRegistries.ITEM.keySet().size(),
                 manager.getRecipes().size(), ResearchApi.registry().entries().size());
         helper.assertTrue(Files.isRegularFile(target), "inventory file was not created");
         helper.succeed();

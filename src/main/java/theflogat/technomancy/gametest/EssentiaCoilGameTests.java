@@ -170,10 +170,18 @@ public final class EssentiaCoilGameTests {
         EssentiaRig rig = EssentiaRig.place(helper, IGNIS);
         rig.link();
         rig.coilEntity().setFilter(IGNIS);
+        //? if forge {
         CompoundTag saved = rig.coilEntity().saveWithoutMetadata();
+        //?} else {
+        /*CompoundTag saved = rig.coilEntity().saveWithoutMetadata(helper.getLevel().registryAccess());
+        *///?}
         EssentiaCoilBlockEntity restored =
                 new EssentiaCoilBlockEntity(rig.coil(), helper.getLevel().getBlockState(rig.coil()));
+        //? if forge {
         restored.load(saved);
+        //?} else {
+        /*restored.loadWithComponents(saved, helper.getLevel().registryAccess());
+        *///?}
         helper.assertTrue(IGNIS.equals(restored.filter()), "the filter was lost on reload");
         helper.assertTrue(restored.links().view().equals(rig.coilEntity().links().view()),
                 "the links changed on reload");

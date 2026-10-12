@@ -156,9 +156,17 @@ public final class CoilGameTests {
         ItemRig rig = ItemRig.place(helper);
         rig.link();
         rig.coilEntity().setFilter(new ItemStack(Items.IRON_INGOT));
+        //? if forge {
         CompoundTag saved = rig.coilEntity().saveWithoutMetadata();
+        //?} else {
+        /*CompoundTag saved = rig.coilEntity().saveWithoutMetadata(helper.getLevel().registryAccess());
+        *///?}
         ItemCoilBlockEntity restored = new ItemCoilBlockEntity(rig.coil(), helper.getLevel().getBlockState(rig.coil()));
+        //? if forge {
         restored.load(saved);
+        //?} else {
+        /*restored.loadWithComponents(saved, helper.getLevel().registryAccess());
+        *///?}
         helper.assertTrue(restored.links().view().equals(rig.coilEntity().links().view()), "links changed on reload");
         helper.assertTrue(restored.filter().is(Items.IRON_INGOT), "filter lost on reload");
         helper.succeed();
@@ -170,7 +178,11 @@ public final class CoilGameTests {
         ItemRig rig = ItemRig.place(helper);
         BlockPos stone = helper.absolutePos(new BlockPos(1, 1, 3));
         helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
+        //? if forge {
         Player player = helper.makeMockPlayer();
+        //?} else {
+        /*Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE);
+        *///?}
         ItemStack coupler = new ItemStack(TechnomItems.COIL_COUPLER.get());
         player.setItemInHand(InteractionHand.MAIN_HAND, coupler);
 

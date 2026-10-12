@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import net.minecraftforge.items.IItemHandler;
@@ -81,7 +80,7 @@ public final class DeconTableGameTests {
         AdvDeconTableBlockEntity table = place(helper);
         ItemStack iron = new ItemStack(Items.IRON_INGOT, 4);
         for (Direction face : Direction.values()) {
-            IItemHandler view = table.getCapability(ForgeCapabilities.ITEM_HANDLER, face).orElse(null);
+            IItemHandler view = theflogat.technomancy.common.platform.CapabilityAccess.items(table, face);
             helper.assertTrue(view != null, face + ": no item handler at all");
             helper.assertTrue(view.getSlots() == AdvDeconTableBlockEntity.SLOTS, face + ": wrong slot count");
             helper.assertTrue(view.insertItem(AdvDeconTableBlockEntity.SLOT, iron, true).isEmpty(),
@@ -89,7 +88,7 @@ public final class DeconTableGameTests {
             helper.assertTrue(view.isItemValid(AdvDeconTableBlockEntity.SLOT, iron),
                     face + ": the slot reports the ingot as invalid");
         }
-        IItemHandler internal = table.getCapability(ForgeCapabilities.ITEM_HANDLER, null).orElse(null);
+        IItemHandler internal = theflogat.technomancy.common.platform.CapabilityAccess.items(table, null);
         helper.assertTrue(internal != null, "no side-less item handler");
         helper.assertTrue(internal.insertItem(AdvDeconTableBlockEntity.SLOT, iron, true).isEmpty(),
                 "the side-less view refused an ingot");

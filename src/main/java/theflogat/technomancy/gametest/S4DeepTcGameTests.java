@@ -17,7 +17,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import theflogat.technomancy.Technomancy;
@@ -133,14 +132,18 @@ public final class S4DeepTcGameTests {
                 continue;
             }
             Block block = BuiltInRegistries.BLOCK.get(id);
-            ResourceLocation table = block.getLootTable();
+            var table = block.getLootTable();
             if (table.equals(BuiltInLootTables.EMPTY)) {
                 exempt++;
                 continue;
             }
             checked++;
             S2StorageGameTests.check(helper,
+                    //? if forge {
                     helper.getLevel().getServer().getLootData().getLootTable(table) != LootTable.EMPTY,
+                    //?} else {
+                    /*helper.getLevel().getServer().reloadableRegistries().getLootTable(table) != LootTable.EMPTY,
+                    *///?}
                     "technom:" + id.getPath() + " points at loot table " + table
                             + ", which does not exist, so breaking it drops nothing");
         }
@@ -177,11 +180,9 @@ public final class S4DeepTcGameTests {
             checked++;
             boolean exposed = false;
             for (Direction side : Direction.values()) {
-                exposed |= level.getBlockEntity(pos)
-                        .getCapability(ForgeCapabilities.ENERGY, side).isPresent();
+                exposed |= theflogat.technomancy.common.platform.CapabilityAccess.energy(level.getBlockEntity(pos), side) != null;
             }
-            exposed |= level.getBlockEntity(pos)
-                    .getCapability(ForgeCapabilities.ENERGY, null).isPresent();
+            exposed |= theflogat.technomancy.common.platform.CapabilityAccess.energy(level.getBlockEntity(pos), null) != null;
             S2StorageGameTests.check(helper, exposed,
                     "technom:" + id.getPath() + " holds a MachineEnergy but exposes no energy"
                             + " capability, so no neighbour can ever charge it");

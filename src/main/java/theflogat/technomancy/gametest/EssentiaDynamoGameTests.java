@@ -14,7 +14,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -116,7 +115,7 @@ public final class EssentiaDynamoGameTests {
                     face + ": reported " + dynamo.essentiaAmount(face) + " units available on a"
                             + " face that gives nothing");
 
-            IEnergyStorage view = dynamo.getCapability(ForgeCapabilities.ENERGY, face).orElse(null);
+            IEnergyStorage view = theflogat.technomancy.common.platform.CapabilityAccess.energy(dynamo, face);
             helper.assertTrue(view != null, face + ": no Forge Energy view at all");
             helper.assertFalse(view.canReceive(), face + ": a dynamo must never accept energy");
             helper.assertTrue(view.receiveEnergy(1000, false) == 0,
@@ -439,8 +438,8 @@ public final class EssentiaDynamoGameTests {
                     "turn " + turn + ": the new output face " + after + " still accepts essentia");
             helper.assertTrue(turned.canInputFrom(before),
                     "turn " + turn + ": the old output face " + before + " did not become an essentia face");
-            IEnergyStorage out = turned.getCapability(ForgeCapabilities.ENERGY, after).orElse(null);
-            IEnergyStorage old = turned.getCapability(ForgeCapabilities.ENERGY, before).orElse(null);
+            IEnergyStorage out = theflogat.technomancy.common.platform.CapabilityAccess.energy(turned, after);
+            IEnergyStorage old = theflogat.technomancy.common.platform.CapabilityAccess.energy(turned, before);
             helper.assertTrue(out != null && out.canExtract(),
                     "turn " + turn + ": no energy output on the new face " + after);
             helper.assertTrue(old != null && !old.canExtract(),
@@ -470,10 +469,18 @@ public final class EssentiaDynamoGameTests {
                     "nothing worth saving yet: " + energy + " Q, " + fuel + " Q of fuel, "
                             + essentia + " units");
 
+            //? if forge {
             CompoundTag saved = before.saveWithoutMetadata();
+            //?} else {
+            /*CompoundTag saved = before.saveWithoutMetadata(helper.getLevel().registryAccess());
+            *///?}
             EssentiaDynamoBlockEntity restored =
                     new EssentiaDynamoBlockEntity(chain.dynamoPos(), before.getBlockState());
+            //? if forge {
             restored.load(saved);
+            //?} else {
+            /*restored.loadWithComponents(saved, helper.getLevel().registryAccess());
+            *///?}
 
             helper.assertTrue(restored.energy().ledger().stored() == energy,
                     "energy came back as " + restored.energy().ledger().stored() + " instead of " + energy);

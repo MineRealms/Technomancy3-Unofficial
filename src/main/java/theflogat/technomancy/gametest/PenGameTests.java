@@ -48,7 +48,11 @@ public final class PenGameTests {
         helper.setBlock(left, TCBlocks.TABLE.get());
         helper.setBlock(right, TCBlocks.TABLE.get());
 
+        //? if forge {
         Player player = helper.makeMockPlayer();
+        //?} else {
+        /*Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE);
+        *///?}
         ItemStack pen = new ItemStack(TechnomItems.PEN.get());
         pen.setDamageValue(7);
         player.setItemInHand(InteractionHand.MAIN_HAND, pen);

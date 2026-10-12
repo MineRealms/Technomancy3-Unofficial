@@ -22,7 +22,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -258,7 +257,7 @@ public final class CondenserGameTests {
             helper.assertTrue(!port.canExtract(), face + " offers to give energy back");
             helper.assertTrue(port.extractEnergy(1000, false) == 0, face + " let energy out");
         }
-        IEnergyStorage unsided = condenser.getCapability(ForgeCapabilities.ENERGY, null).orElse(null);
+        IEnergyStorage unsided = theflogat.technomancy.common.platform.CapabilityAccess.energy(condenser, null);
         helper.assertTrue(unsided != null, "probes ask for the unsided view");
         helper.assertTrue(!unsided.canReceive() && !unsided.canExtract(),
                 "an unsided query must not carry transfer rights");
@@ -285,7 +284,11 @@ public final class CondenserGameTests {
         ServerLevel level = helper.getLevel();
         EnergyCondenserBlock block = (EnergyCondenserBlock) TechnomBlocks.ENERGY_CONDENSER.get();
         BlockState state = block.defaultBlockState();
+        //? if forge {
         Player player = helper.makeMockSurvivalPlayer();
+        //?} else {
+        /*Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+        *///?}
 
         // Air, and a foreign block entity: neither can supply a condenser, and the branch that
         // used to crash is the non-sneaking one with something in hand.
@@ -316,7 +319,11 @@ public final class CondenserGameTests {
         BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
         EnergyCondenserBlockEntity condenser = place(helper, pos, Direction.NORTH);
         EnergyCondenserBlock block = (EnergyCondenserBlock) TechnomBlocks.ENERGY_CONDENSER.get();
+        //? if forge {
         Player player = helper.makeMockSurvivalPlayer();
+        //?} else {
+        /*Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+        *///?}
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 
         player.setShiftKeyDown(true);
@@ -358,7 +365,11 @@ public final class CondenserGameTests {
         BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
         EnergyCondenserBlockEntity condenser = place(helper, pos, Direction.NORTH);
         BlockState state = level.getBlockState(pos);
+        //? if forge {
         Player player = helper.makeMockSurvivalPlayer();
+        //?} else {
+        /*Player player = helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+        *///?}
 
         helper.assertTrue(state.is(BlockTags.MINEABLE_WITH_PICKAXE),
                 "the condenser needs a correct tool but is in no tool tag, so it can never be harvested");
@@ -413,7 +424,7 @@ public final class CondenserGameTests {
 
     private static IEnergyStorage energyPort(GameTestHelper helper, EnergyCondenserBlockEntity condenser,
             Direction face) {
-        IEnergyStorage port = condenser.getCapability(ForgeCapabilities.ENERGY, face).orElse(null);
+        IEnergyStorage port = theflogat.technomancy.common.platform.CapabilityAccess.energy(condenser, face);
         helper.assertTrue(port != null, "no Forge Energy capability on " + face);
         return port;
     }

@@ -14,7 +14,6 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -49,7 +48,11 @@ public final class WandChargeGameTests {
     private static ServerPlayer mockPlayer(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         return new ServerPlayer(level.getServer(), level,
+                //? if forge {
                 new GameProfile(UUID.randomUUID(), "technom-wand-test"));
+                //?} else {
+                /*new GameProfile(UUID.randomUUID(), "technom-wand-test"), net.minecraft.server.level.ClientInformation.createDefault());
+                *///?}
     }
 
     /** The rod definition is a data map entry; an absent one would silently disable everything. */
@@ -116,7 +119,7 @@ public final class WandChargeGameTests {
     public static void theSceptreAcceptsForgeEnergyAndCountsAsAWrench(GameTestHelper helper) {
         ServerPlayer player = mockPlayer(helper);
         ItemStack sceptre = WandApi.create(TechnomWandRods.TECHNOTURGE, WandMaterialId.IRON);
-        IEnergyStorage energy = sceptre.getCapability(ForgeCapabilities.ENERGY)
+        IEnergyStorage energy = java.util.Optional.ofNullable(theflogat.technomancy.common.platform.CapabilityAccess.energy(sceptre))
                 .orElseThrow(() -> new AssertionError("no Forge Energy capability on a technoturge wand"));
         helper.assertTrue(!energy.canExtract() && energy.extractEnergy(1000, false) == 0,
                 "energy must never leave a wand");

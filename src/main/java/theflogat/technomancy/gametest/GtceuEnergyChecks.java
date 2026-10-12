@@ -3,10 +3,18 @@ package theflogat.technomancy.gametest;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
+//? if forge {
 import com.gregtechceu.gtceu.api.capability.forge.GTCapability;
+//?} else {
+/*import com.gregtechceu.gtceu.api.capability.GTCapability;
+*///?}
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
+//? if forge {
 import com.gregtechceu.gtceu.common.data.GTMachines;
+//?} else {
+/*import com.gregtechceu.gtceu.data.machine.GTMachines;
+*///?}
 import com.gregtechceu.gtceu.utils.GTUtil;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -242,7 +250,11 @@ final class GtceuEnergyChecks {
 
     @Nullable
     private static IEnergyContainer container(MachineEnergy energy, @Nullable Direction side) {
+        //? if forge {
         return energy.getCapability(GTCapability.CAPABILITY_ENERGY_CONTAINER, side).orElse(null);
+        //?} else {
+        /*return energy.getCapability(GTCapability.CAPABILITY_ENERGY_CONTAINER, side);
+        *///?}
     }
 
     private static BlockEntity host(GameTestHelper helper, BlockPos relative) {

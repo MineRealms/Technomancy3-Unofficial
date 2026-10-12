@@ -9,13 +9,25 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
+//? if forge {
 import net.minecraftforge.common.MinecraftForge;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import net.minecraftforge.energy.IEnergyStorage;
+//? if forge {
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+//?}
 import theflogat.technomancy.Technomancy;
 
 /**
@@ -31,14 +43,20 @@ import theflogat.technomancy.Technomancy;
  * test asked for. This whole package is excluded from the release JAR, so no shipped class knows
  * it exists.</p>
  */
+//? if forge {
 final class GameTestEnergySink implements IEnergyStorage, ICapabilityProvider {
+//?} else {
+/*final class GameTestEnergySink implements IEnergyStorage {
+*///?}
 
     private static final ResourceLocation KEY =
             new ResourceLocation(Technomancy.MOD_ID, "gametest_energy_sink");
     private static final Map<BlockPos, GameTestEnergySink> REQUESTED = new HashMap<>();
     private static boolean listening;
 
+    //? if forge {
     private final LazyOptional<IEnergyStorage> view = LazyOptional.of(() -> this);
+    //?}
     private final int capacity;
     private final int maxReceive;
     private int stored;
@@ -57,11 +75,13 @@ final class GameTestEnergySink implements IEnergyStorage, ICapabilityProvider {
      */
     static synchronized GameTestEnergySink placeAt(ServerLevel level, BlockPos pos, int capacity,
             int maxReceive) {
+        //? if forge {
         if (!listening) {
             MinecraftForge.EVENT_BUS.<AttachCapabilitiesEvent<BlockEntity>, BlockEntity>addGenericListener(
                     BlockEntity.class, GameTestEnergySink::attach);
             listening = true;
         }
+        //?}
         GameTestEnergySink sink = new GameTestEnergySink(capacity, maxReceive);
         // Recorded before the block is placed, because the capability is attached while the
         // block entity is being built.
@@ -71,18 +91,25 @@ final class GameTestEnergySink implements IEnergyStorage, ICapabilityProvider {
         if (host == null) {
             throw new IllegalStateException("no block entity to host the energy sink at " + pos);
         }
-        if (host.getCapability(ForgeCapabilities.ENERGY).orElse(null) != sink) {
+        if (theflogat.technomancy.common.platform.CapabilityAccess.energy(host, null) != sink) {
             throw new IllegalStateException("the energy sink was not attached at " + pos
                     + "; AttachCapabilitiesEvent did not reach it");
         }
         return sink;
     }
 
+    //? if forge {
     private static void attach(AttachCapabilitiesEvent<BlockEntity> event) {
         GameTestEnergySink sink = REQUESTED.get(event.getObject().getBlockPos());
         if (sink != null) {
             event.addCapability(KEY, sink);
         }
+    }
+
+    //?}
+
+    static IEnergyStorage at(BlockPos pos) {
+        return REQUESTED.get(pos);
     }
 
     /** Everything this sink has ever been given, which is what a conservation check needs. */
@@ -128,8 +155,10 @@ final class GameTestEnergySink implements IEnergyStorage, ICapabilityProvider {
         return true;
     }
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         return cap == ForgeCapabilities.ENERGY ? view.cast() : LazyOptional.empty();
     }
+    //?}
 }

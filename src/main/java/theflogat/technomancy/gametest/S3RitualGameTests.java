@@ -1,5 +1,6 @@
 package theflogat.technomancy.gametest;
 
+import java.util.function.Supplier;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -8,7 +9,6 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
-import net.minecraftforge.registries.RegistryObject;
 import theflogat.technomancy.Technomancy;
 import theflogat.technomancy.common.registry.TechnomBlocks;
 import theflogat.technomancy.common.rituals.Ritual;
@@ -56,11 +56,11 @@ public final class S3RitualGameTests {
         helper.succeed();
     }
 
-    private static String path(RegistryObject<Block> block) {
+    private static String path(Supplier<Block> block) {
         return BuiltInRegistries.BLOCK.getKey(block.get()).getPath();
     }
 
-    private static RegistryObject<Block> crystal(Ritual.Type type) {
+    private static Supplier<Block> crystal(Ritual.Type type) {
         return switch (type) {
             case EARTH -> TechnomBlocks.CRYSTAL_EARTH;
             case FIRE -> TechnomBlocks.CRYSTAL_FIRE;
@@ -70,7 +70,7 @@ public final class S3RitualGameTests {
         };
     }
 
-    private static RegistryObject<Block> catalyst(Ritual.Type type) {
+    private static Supplier<Block> catalyst(Ritual.Type type) {
         return switch (type) {
             case EARTH -> TechnomBlocks.CATALYST_EARTH;
             case FIRE -> TechnomBlocks.CATALYST_FIRE;

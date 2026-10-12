@@ -16,7 +16,6 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -63,7 +62,7 @@ public final class NodeFabricatorGameTests {
             NodeFabricatorShellBlockEntity shell = (NodeFabricatorShellBlockEntity) helper.getBlockEntity(shellRel);
             helper.assertTrue(shell != null && helper.absolutePos(pos).equals(shell.host()),
                     "shell at " + shellRel + " does not know its host");
-            IEnergyStorage energy = shell.getCapability(ForgeCapabilities.ENERGY, Direction.UP)
+            IEnergyStorage energy = java.util.Optional.ofNullable(theflogat.technomancy.common.platform.CapabilityAccess.energy(shell, Direction.UP))
                     .orElseThrow(() -> new AssertionError("no energy port on the shell at " + shellRel));
             // One ledger seen through nine blocks: reading 5000 from every shell is the point.
             helper.assertTrue(energy.getEnergyStored() == 5000,
@@ -72,7 +71,7 @@ public final class NodeFabricatorGameTests {
         // Filling through one shell must not create energy in another.
         NodeFabricatorShellBlockEntity first = (NodeFabricatorShellBlockEntity) helper
                 .getBlockEntity(NodeFabricatorBlockEntity.shellPositions(pos, Direction.NORTH).get(0));
-        first.getCapability(ForgeCapabilities.ENERGY, Direction.UP).orElseThrow(AssertionError::new)
+        java.util.Optional.ofNullable(theflogat.technomancy.common.platform.CapabilityAccess.energy(first, Direction.UP)).orElseThrow(AssertionError::new)
                 .receiveEnergy(1000, false);
         helper.assertTrue(machine.energy().ledger().stored() == 6000,
                 "the host holds " + machine.energy().ledger().stored() + " Q, expected 6000");
