@@ -1,63 +1,29 @@
 plugins {
     id 'eclipse'
     id 'idea'
-    id 'net.minecraftforge.gradle' version '6.0.54'
+    id 'dev.kikugie.stonecutter'
+    // Both loader plugin families come from ModDevGradle. They are declared here (apply false)
+    // so that the per-node branch below can apply exactly one of them.
+    id 'net.neoforged.moddev.legacyforge' version '2.0.148' apply false
+    id 'net.neoforged.moddev' version '2.0.148' apply false
 }
+
+// This file is Stonecutter's shared build script: it runs once per node.
+def isForge = sc.current.project.endsWith('-forge')
 
 version = mod_version
 group = mod_group_id
-base { archivesName = "${mod_id}-${minecraft_version}" }
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+base { archivesName = "${mod_id}-${sc.current.version}" }
+java.toolchain.languageVersion = JavaLanguageVersion.of(isForge ? 17 : 21)
 
 def withGtceu = providers.gradleProperty('withGtceu').map { it.toBoolean() }.getOrElse(false)
 def withBotania = providers.gradleProperty('withBotania').map { it.toBoolean() }.getOrElse(true)
 def withJade = providers.gradleProperty('withJade').map { it.toBoolean() }.getOrElse(true)
 def withKubejs = providers.gradleProperty('withKubejs').map { it.toBoolean() }.getOrElse(false)
-def tc4Repository = file(providers.gradleProperty('tc4Repository').getOrElse('local-repo'))
+def tc4Repository = file(providers.gradleProperty('tc4Repository')
+        .getOrElse(rootProject.file('local-repo').absolutePath))
 
-minecraft {
-    mappings channel: mapping_channel, version: mapping_version
-    copyIdeResources = true
-    runs {
-        configureEach {
-            workingDirectory project.file('run')
-            property 'forge.logging.console.level', 'info'
-            // Dependencies carry refmaps compiled with production mappings.
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            mods { "${mod_id}" { source sourceSets.main } }
-        }
-        client {
-            workingDirectory project.file('run-client')
-            // Automated client testing needs a loaded world: the RosettaRemoteDebugBridge only
-            // starts listening on ServerStartedEvent, which on a client means "a world was
-            // joined", not "the title screen appeared". tools/client_probe.py passes this.
-            if (project.hasProperty('quickPlay')) {
-                args '--quickPlaySingleplayer', project.property('quickPlay')
-            }
-            // Its own bridge port, so a client and a dedicated server can be probed at once
-            // without one of them failing to bind. Harmless when the bridge is not installed.
-            property 'rosetta.remote.port', '48791'
-        }
-        server {
-            workingDirectory project.file('run-server')
-            args '--nogui'
-        }
-        gameTestServer {
-            workingDirectory project.file('run-gametest')
-            property 'forge.enabledGameTestNamespaces', mod_id
-            // Lets GtceuIsolationGameTests assert that the flag really changed the runtime set.
-            property 'technom.gametest.expectGtceu', withGtceu.toString()
-        }
-        data {
-            workingDirectory project.file('run-data')
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'),
-                    '--existing', file('src/main/resources/')
-        }
-    }
-}
-
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+sourceSets.main.resources { srcDir rootProject.file('src/generated/resources') }
 
 // Optional local workaround; the project never sets a machine-specific proxy.
 if (providers.gradleProperty('mavenCentralMirror').isPresent()) {
@@ -69,148 +35,233 @@ if (providers.gradleProperty('mavenCentralMirror').isPresent()) {
     }
 }
 
-repositories {
-    maven {
-        name = 'LocalTC4R'
-        url = uri(tc4Repository)
-        content { includeGroup 'dev.tc4port' }
-    }
-    maven { url = 'https://maven.gtceu.com' }
-    maven { url = 'https://maven.firstdark.dev/snapshots' }
-    maven { url = 'https://maven.tterrag.com' }
-    maven { url = 'https://maven.theillusivec4.top' }
-    // Botania (and its API) and JEI are published here.
-    maven { url = 'https://maven.blamejared.com' }
-    // Jade is published on the Modrinth maven, which mirrors every project file.
-    maven {
-        url = 'https://api.modrinth.com/maven'
-        content { includeGroup 'maven.modrinth' }
-    }
-    // KubeJS.
-    maven { url = 'https://maven.latvian.dev/releases' }
-    // Architectury, which KubeJS declares mandatory alongside Rhino.
-    maven { url = 'https://maven.architectury.dev' }
-    maven { url = 'https://maven.minecraftforge.net' }
-    maven { url = 'https://modmaven.dev' }
-    mavenCentral()
-}
+if (isForge) {
+    // ---------------------------------------------------------------- 1.20.1 / Forge (LegacyForge)
+    apply plugin: 'net.neoforged.moddev.legacyforge'
 
-dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    // Configure the original dependency before ForgeGradle copies it into __obfuscated.
-    implementation(fg.deobf("dev.tc4port:thaumcraft-forge:${thaumcraft_version}", { transitive = false }))
-    runtimeOnly(fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}", { transitive = false }))
-    runtimeOnly(fg.deobf("com.github.glitchfiend:TerraBlender-forge:${terrablender_version}", { transitive = false }))
+    legacyForge {
+        version = "${minecraft_version}-${forge_version}"
 
-    // One compile API for all builds. The flag only changes the development runtime.
-    compileOnly(fg.deobf("com.gregtechceu.gtceu:gtceu-1.20.1:${gtceu_version}", { transitive = false }))
-    compileOnly(fg.deobf("com.lowdragmc.ldlib:ldlib-forge-1.20.1:${ldlib_version}", {
-        transitive = false
-        exclude group: 'appeng', module: 'appliedenergistics2-forge'
-    }))
-    compileOnly(fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}", { transitive = false }))
-
-    if (withGtceu) {
-        runtimeOnly(fg.deobf("com.gregtechceu.gtceu:gtceu-1.20.1:${gtceu_version}", { transitive = false }))
-        // LDLib, Registrate and Configuration are embedded by GTCEu.
-    }
-
-    // Optional Botania module: the API is always on the compile path, the runtime only in dev.
-    compileOnly(fg.deobf("vazkii.botania:Botania:${botania_version}"))
-    // The Botania machines register unconditionally and reference the API at class load, so the
-    // development runtime needs the mod itself. It is not bundled into the jar; players only get
-    // it if their pack ships Botania. Botania declares Patchouli (and Curios, already above) as
-    // mandatory, so both must be on the dev runtime or the game refuses to start. Set
-    // -PwithBotania=false to run the development game without Botania and exercise the
-    // absent-safety gate.
-    if (withBotania) {
-        runtimeOnly(fg.deobf("vazkii.botania:Botania:${botania_version}", { transitive = false }))
-        runtimeOnly(fg.deobf("vazkii.patchouli:Patchouli:${patchouli_version}", { transitive = false }))
-    }
-    // JEI: compileOnly for the plugin, runtimeOnly so dev shows recipes.
-    compileOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))
-    runtimeOnly(fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}"))
-    // Jade. Unlike JEI its plugin loads on BOTH sides, so the plugin class is common code and
-    // the runtime dependency is gated: set -PwithJade=false to run the development game
-    // without Jade and exercise the absent path.
-    compileOnly(fg.deobf("maven.modrinth:jade:${jade_version}", { transitive = false }))
-    if (withJade) {
-        runtimeOnly(fg.deobf("maven.modrinth:jade:${jade_version}", { transitive = false }))
-    }
-    // KubeJS: compileOnly by default, deliberately. It is a scripting engine, so leaving it out
-    // of the normal development runtime keeps startup and the resource reload identical for every
-    // test in the suite. Its plugin is discovered from the kubejs.plugins.txt resource at the jar
-    // root, so an absent KubeJS never reads that file and never loads the class. Set
-    // -PwithKubejs=true to install it for real and exercise the plugin; Rhino and Architectury
-    // are mods rather than libraries and KubeJS declares both mandatory, so they come with it.
-    compileOnly(fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}", { transitive = false }))
-    if (withKubejs) {
-        runtimeOnly(fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}", { transitive = false }))
-        runtimeOnly(fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}", { transitive = false }))
-        runtimeOnly(fg.deobf("dev.architectury:architectury-forge:${architectury_version}",
-                { transitive = false }))
-    }
-
-    testImplementation(platform("org.junit:junit-bom:${junit_version}"))
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-tasks.named('test', Test).configure {
-    useJUnitPlatform()
-    testLogging { events 'failed'; exceptionFormat 'full' }
-}
-
-tasks.register('verifyLocalDependencies') {
-    group = 'verification'
-    description = 'Checks supplied TC4R artifacts against the recorded SHA-256 hashes.'
-    doLast {
-        def manifest = new groovy.json.JsonSlurper().parse(file('local-repo/DEPENDENCIES.json'))
-        manifest.artifacts.each { artifact ->
-            def target = new File(tc4Repository, artifact.path)
-            if (!target.isFile()) {
-                throw new GradleException("Missing ${target}. Run tools/bootstrap-local-deps.ps1; see local-repo/README.md.")
+        runs {
+            configureEach {
+                gameDirectory = rootProject.file('run')
+                systemProperty 'forge.logging.console.level', 'info'
+                // LegacyForge sets `mixin.env.remapRefMap` and `mixin.env.refMapRemappingFile`
+                // itself (pointing at its own `moddev/artifacts/intermediateToNamed.srg`), so the
+                // single-version build's hand-written values must NOT be repeated here - a stale
+                // path silently disables refmap remapping and every SRG-named dependency mixin
+                // (e.g. TerraBlender's) fails to apply.
             }
-            def digest = java.security.MessageDigest.getInstance('SHA-256').digest(target.bytes).encodeHex().toString()
-            if (digest != artifact.sha256) {
-                throw new GradleException("TC4R checksum mismatch: ${target.name}. Keep the version and manifest in sync.")
+            client {
+                client()
+                gameDirectory = rootProject.file('run-client')
+                // Automated client testing needs a loaded world: the RosettaRemoteDebugBridge only
+                // starts listening on ServerStartedEvent, which on a client means "a world was
+                // joined", not "the title screen appeared". tools/client_probe.py passes this.
+                if (project.hasProperty('quickPlay')) {
+                    programArgument '--quickPlaySingleplayer'
+                    programArgument project.property('quickPlay').toString()
+                }
+                // Its own bridge port, so a client and a dedicated server can be probed at once
+                // without one of them failing to bind. Harmless when the bridge is not installed.
+                systemProperty 'rosetta.remote.port', '48791'
+            }
+            server {
+                server()
+                gameDirectory = rootProject.file('run-server')
+                programArgument '--nogui'
+            }
+            gameTestServer {
+                type = 'gameTestServer'
+                gameDirectory = rootProject.file('run-gametest')
+                systemProperty 'forge.enabledGameTestNamespaces', mod_id
+                // Lets GtceuIsolationGameTests assert that the flag really changed the runtime set.
+                systemProperty 'technom.gametest.expectGtceu', withGtceu.toString()
+            }
+            data {
+                data()
+                gameDirectory = rootProject.file('run-data')
+                programArgument '--mod'
+                programArgument mod_id
+                programArgument '--all'
+                programArgument '--output'
+                programArgument rootProject.file('src/generated/resources/').absolutePath
+                programArgument '--existing'
+                programArgument rootProject.file('src/main/resources/').absolutePath
             }
         }
-        logger.lifecycle("Verified ${manifest.artifacts.size()} TC4R artifacts in ${tc4Repository}")
-    }
-}
-tasks.named('compileJava').configure { dependsOn 'verifyLocalDependencies' }
-tasks.named('check').configure { dependsOn 'verifyLocalDependencies' }
 
-tasks.named('processResources', ProcessResources).configure {
-    def values = [minecraft_version_range: minecraft_version_range,
-            forge_version_range: forge_version_range, loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
-            thaumcraft_runtime_version: thaumcraft_runtime_version, gtceu_version: gtceu_version]
-    inputs.properties values
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand values }
+        mods {
+            technom {
+                sourceSet sourceSets.main
+            }
+        }
+
+        // LegacyForge has no `unitTest { }` block (that is NeoForge-only), so the JUnit suite has to
+        // be given the modding classpath explicitly. Without this the `test` source set sees only
+        // `implementation` (the remapped mod jars) and none of Minecraft/Forge - `compileTestJava`
+        // then fails on every vanilla import.
+        addModdingDependenciesTo sourceSets.test
+    }
+
+    repositories {
+        maven {
+            name = 'LocalTC4R'
+            url = uri(tc4Repository)
+            content { includeGroup 'dev.tc4port' }
+        }
+        maven { url = 'https://maven.gtceu.com' }
+        maven { url = 'https://maven.firstdark.dev/snapshots' }
+        maven { url = 'https://maven.tterrag.com' }
+        maven { url = 'https://maven.theillusivec4.top' }
+        // Botania (and its API) and JEI are published here.
+        maven { url = 'https://maven.blamejared.com' }
+        // Jade is published on the Modrinth maven, which mirrors every project file.
+        maven {
+            url = 'https://api.modrinth.com/maven'
+            content { includeGroup 'maven.modrinth' }
+        }
+        // KubeJS.
+        maven { url = 'https://maven.latvian.dev/releases' }
+        // Architectury, which KubeJS declares mandatory alongside Rhino.
+        maven { url = 'https://maven.architectury.dev' }
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://modmaven.dev' }
+        mavenCentral()
+    }
+
+    dependencies {
+        // ModDevGradle's mod* configurations remap SRG -> official and are non-transitive, which is
+        // exactly the semantics ForgeGradle's `fg.deobf(..., { transitive = false })` had.
+        modImplementation("dev.tc4port:thaumcraft-forge:${thaumcraft_version}") { transitive = false }
+        modRuntimeOnly("top.theillusivec4.curios:curios-forge:${curios_version}") { transitive = false }
+        modRuntimeOnly("com.github.glitchfiend:TerraBlender-forge:${terrablender_version}") {
+            transitive = false
+        }
+
+        // One compile API for all builds. The flag only changes the development runtime.
+        modCompileOnly("com.gregtechceu.gtceu:gtceu-1.20.1:${gtceu_version}") { transitive = false }
+        modCompileOnly("com.lowdragmc.ldlib:ldlib-forge-1.20.1:${ldlib_version}") {
+            transitive = false
+            exclude group: 'appeng', module: 'appliedenergistics2-forge'
+        }
+        modCompileOnly("com.tterrag.registrate:Registrate:${registrate_version}") { transitive = false }
+
+        if (withGtceu) {
+            modRuntimeOnly("com.gregtechceu.gtceu:gtceu-1.20.1:${gtceu_version}") { transitive = false }
+            // LDLib, Registrate and Configuration are embedded by GTCEu.
+        }
+
+        // Optional Botania module: the API is always on the compile path, the runtime only in dev.
+        modCompileOnly("vazkii.botania:Botania:${botania_version}")
+        // The Botania machines register unconditionally and reference the API at class load, so the
+        // development runtime needs the mod itself. It is not bundled into the jar; players only get
+        // it if their pack ships Botania. Botania declares Patchouli (and Curios, already above) as
+        // mandatory, so both must be on the dev runtime or the game refuses to start. Set
+        // -PwithBotania=false to run the development game without Botania and exercise the
+        // absent-safety gate.
+        if (withBotania) {
+            modRuntimeOnly("vazkii.botania:Botania:${botania_version}") { transitive = false }
+            modRuntimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}") { transitive = false }
+        }
+        // JEI: compileOnly for the plugin, runtimeOnly so dev shows recipes.
+        modCompileOnly("mezz.jei:jei-1.20.1-forge:${jei_version}")
+        modRuntimeOnly("mezz.jei:jei-1.20.1-forge:${jei_version}")
+        // Jade. Unlike JEI its plugin loads on BOTH sides, so the plugin class is common code and
+        // the runtime dependency is gated: set -PwithJade=false to run the development game
+        // without Jade and exercise the absent path.
+        modCompileOnly("maven.modrinth:jade:${jade_version}") { transitive = false }
+        if (withJade) {
+            modRuntimeOnly("maven.modrinth:jade:${jade_version}") { transitive = false }
+        }
+        // KubeJS: compileOnly by default, deliberately. It is a scripting engine, so leaving it out
+        // of the normal development runtime keeps startup and the resource reload identical for every
+        // test in the suite. Its plugin is discovered from the kubejs.plugins.txt resource at the jar
+        // root, so an absent KubeJS never reads that file and never loads the class. Set
+        // -PwithKubejs=true to install it for real and exercise the plugin; Rhino and Architectury
+        // are mods rather than libraries and KubeJS declares both mandatory, so they come with it.
+        modCompileOnly("dev.latvian.mods:kubejs-forge:${kubejs_version}") { transitive = false }
+        if (withKubejs) {
+            modRuntimeOnly("dev.latvian.mods:kubejs-forge:${kubejs_version}") { transitive = false }
+            modRuntimeOnly("dev.latvian.mods:rhino-forge:${rhino_version}") { transitive = false }
+            modRuntimeOnly("dev.architectury:architectury-forge:${architectury_version}") {
+                transitive = false
+            }
+        }
+
+        testImplementation(platform("org.junit:junit-bom:${junit_version}"))
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.named('test', Test).configure {
+        useJUnitPlatform()
+        // Several guard tests read their inputs as paths relative to the repository root
+        // (`src/main/java/...`). The sources live at the root, one level above this node project, so
+        // pin the working directory to the root to preserve the single-version build's behaviour.
+        workingDir = rootProject.projectDir
+        testLogging { events 'failed'; exceptionFormat 'full' }
+    }
+
+    tasks.register('verifyLocalDependencies') {
+        group = 'verification'
+        description = 'Checks supplied TC4R artifacts against the recorded SHA-256 hashes.'
+        doLast {
+            def manifest = new groovy.json.JsonSlurper().parse(rootProject.file('local-repo/DEPENDENCIES.json'))
+            manifest.artifacts.each { artifact ->
+                def target = new File(tc4Repository, artifact.path)
+                if (!target.isFile()) {
+                    throw new GradleException("Missing ${target}. Run tools/bootstrap-local-deps.ps1; see local-repo/README.md.")
+                }
+                def digest = java.security.MessageDigest.getInstance('SHA-256').digest(target.bytes).encodeHex().toString()
+                if (digest != artifact.sha256) {
+                    throw new GradleException("TC4R checksum mismatch: ${target.name}. Keep the version and manifest in sync.")
+                }
+            }
+            logger.lifecycle("Verified ${manifest.artifacts.size()} TC4R artifacts in ${tc4Repository}")
+        }
+    }
+    tasks.named('compileJava').configure { dependsOn 'verifyLocalDependencies' }
+    tasks.named('check').configure { dependsOn 'verifyLocalDependencies' }
+
+    tasks.named('processResources', ProcessResources).configure {
+        def values = [minecraft_version_range: minecraft_version_range,
+                forge_version_range: forge_version_range, loader_version_range: loader_version_range,
+                mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+                mod_authors: mod_authors, mod_description: mod_description,
+                thaumcraft_runtime_version: thaumcraft_runtime_version, gtceu_version: gtceu_version]
+        inputs.properties values
+        filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand values }
+    }
+
+    tasks.named('jar', Jar).configure {
+        // GameTests and their templates only exist for the dev runs; never ship them.
+        exclude 'theflogat/technomancy/gametest/**'
+        exclude 'data/technom/structures/gametest/**'
+        // Forge 1.20.1 has no `[[mixins]]` support in mods.toml; the only registration point is the
+        // `MixinConfigs` manifest attribute (read by Mixin's MixinPlatformAgentDefault). The dev runs
+        // load the mod from `build/resources/main` as an exploded directory, so the same attribute is
+        // also shipped as a resource - drop it here so the generated manifest is the one that lands
+        // in the jar.
+        exclude 'META-INF/MANIFEST.MF'
+        manifest {
+            attributes('Specification-Title': mod_name, 'Specification-Vendor': mod_authors,
+                    'Specification-Version': '1',
+                    // `project.name` is the Stonecutter node name (e.g. `1.20.1-forge`), so build the
+                    // human-facing title from the root project name plus the logical MC version;
+                    // this reproduces the single-version build's `Technomancy-1.20.1`.
+                    'Implementation-Title': "${rootProject.name}-${sc.current.version}",
+                    'Implementation-Version': project.version, 'Implementation-Vendor': mod_authors,
+                    'MixinConfigs': "${mod_id}.mixins.json")
+        }
+        // The licence files live at the repository root, not in the node directory.
+        from([rootProject.file('LICENSE'), rootProject.file('NOTICE')]) { into 'META-INF' }
+    }
+} else {
+    // ------------------------------------------------------- 1.21.1 / NeoForge (filled in at S1)
+    logger.lifecycle("Node ${sc.current.project} is not configured yet; see docs/MULTIVERSION-BUILD-PLAN.zh-CN.md S1.")
 }
 
-tasks.named('jar', Jar).configure {
-    // GameTests and their templates only exist for the dev runs; never ship them.
-    exclude 'theflogat/technomancy/gametest/**'
-    exclude 'data/technom/structures/gametest/**'
-    // Forge 1.20.1 has no `[[mixins]]` support in mods.toml; the only registration point is the
-    // `MixinConfigs` manifest attribute (read by Mixin's MixinPlatformAgentDefault). The dev runs
-    // load the mod from `build/resources/main` as an exploded directory, so the same attribute is
-    // also shipped as a resource - drop it here so the generated manifest is the one that lands
-    // in the jar.
-    exclude 'META-INF/MANIFEST.MF'
-    manifest {
-        attributes('Specification-Title': mod_name, 'Specification-Vendor': mod_authors,
-                'Specification-Version': '1', 'Implementation-Title': project.name,
-                'Implementation-Version': project.version, 'Implementation-Vendor': mod_authors,
-                'MixinConfigs': "${mod_id}.mixins.json")
-    }
-    from(['LICENSE', 'NOTICE']) { into 'META-INF' }
-    finalizedBy 'reobfJar'
-}
 tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
