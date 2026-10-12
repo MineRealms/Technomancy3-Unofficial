@@ -425,6 +425,36 @@ Technomancy/
 - `src/` 内容**一个字节都不改**（此时没有条件注释）。
 - **门禁**：`./gradlew :1.20.1-forge:build` 产出的 jar 与当前 `main` 产出的 jar **内容一致**（允许 manifest 里的时间戳/工具链版本差异，其余逐项比对）；JUnit 全绿；DEV 客户端能起、探针能通；GameTest 全绿。
 
+### S0 结果（2026-10-12 实测完成，全部门禁通过）
+
+实现落在**独立 worktree + `multiversion` 分支**上（`H:\MinecraftMods\Technomancy-1.20.1-wt\multiversion`），`main` 未动、工作区里未提交的 TC4R 20721→20732 WIP 也未触碰。改动文件：`settings.gradle`、`stonecutter.gradle`（新）、`build.gradle`、`gradle.properties`、`gradle/wrapper/gradle-wrapper.properties`（→ 9.4.1）、`versions/<节点>/gradle.properties`（新）。**`src/` 一个字节都没改**（`git status src/` 为空）。
+
+**与 §6 设计的两处偏离（都是有意的）：**
+
+- `local-repo/` **留在仓库根**，没有搬进 `versions/1.20.1-forge/`。理由：它由共享脚本经 `tc4Repository` 从 `rootProject` 解析，且 TC4R 工件在两个节点间是同一份；搬进节点目录反而要每个节点各放一份。
+- 控制器脚本用 **Groovy**（`stonecutter.gradle`），不是 §4 里写的 `.kts` —— 本工程本来就是 Groovy DSL，Stonecutter 的 Groovy 控制器可用（`hard_mode=true` 只压掉"有限支持"提示）。
+
+**换到 MDG 后必须补的 5 处（都是"不报错但行为错"的坑，值得记住）：**
+
+| # | 现象 | 根因 | 修法 |
+|---|---|---|---|
+| 1 | jar 里缺 `META-INF/LICENSE`、`META-INF/NOTICE` | `from(['LICENSE','NOTICE'])` 相对路径按**节点目录**解析，那里没有这两个文件 | `from([rootProject.file('LICENSE'), rootProject.file('NOTICE')])` |
+| 2 | `compileTestJava` 报 100 个"程序包 com.google.gson 不存在"/"变量 Direction" | LegacyForge **没有** `unitTest {}`（那是 NeoForge 独有），`test` 源集只继承 `implementation`（重映射后的 mod jar），拿不到 Minecraft/Forge | `legacyForge { addModdingDependenciesTo sourceSets.test }` |
+| 3 | `LangGuardTest` 2 个用例失败："`src\main\java\...` is not there" | 该测试按**工作目录**相对路径读源码；MDG 下工作目录是节点目录，源码在仓库根 | `tasks.named('test', Test) { workingDir = rootProject.projectDir }` |
+| 4 | GameTest 启动即崩：TerraBlender 的 `@Inject` 找不到 SRG 目标 `m_258002_` | 单版本脚本手写的 `mixin.env.refMapRemappingFile=${buildDir}/createSrgToMcp/output.srg` 在 MDG 下不存在，**覆盖掉了 MDG 自己设的正确值**，于是 SRG refmap 不再重映射 | **删掉**这两行 —— MDG 的 `LegacyForgeModDevPlugin` 会自动设 `mixin.env.remapRefMap=true` 与指向自己 `moddev/artifacts/intermediateToNamed.srg` 的 `refMapRemappingFile` |
+| 5 | manifest 的 `Implementation-Title` 从 `Technomancy-1.20.1` 变成 `1.20.1-forge` | `project.name` 在 Stonecutter 下是**节点名** | 改成 `"${rootProject.name}-${sc.current.version}"`，两个节点各自正确 |
+
+**门禁实测（对照基线是"干净 checkout 的 FG6 构建"，不是旧的 `build/libs`）：**
+
+| 门禁 | 结果 |
+|---|---|
+| **jar 内容一致** | **862/863 项 SHA-256 完全相同**；唯一差异是 `META-INF/MANIFEST.MF` 多出 4 个 Stonecutter 溯源属性（`Stonecutter-Plugin-Version` / `-Gradle-Version` / `-Node-Project` / `-Node-Version`）。类文件、资源、`mods.toml`、`pack.mcmeta`、mixin 配置全部逐字节一致 |
+| **JUnit** | **267/267 全绿** |
+| **GameTest** | **107/107 全绿**（`All 107 required tests passed`） |
+| **runClient** | **启动到主菜单**（LWJGL 3.3.1 / Forge 47.4.23 / Thaumcraft 4R 初始化 / 音效引擎 / 各贴图图集 / Patchouli 271 jsons / JEI 图集，无 mixin 报错） |
+
+**方法论提醒（第一次比对时踩过）：** 直接拿旧 `build/libs/technom-1.20.1-0.1.0-dev.jar`（10-09 从**脏工作区**构建）当基线，会得到 24 个"差异"，全部是假阳性 —— 主仓库工作区里 `*.json` 是 `i/lf w/crlf`（`.gitattributes` 要求 LF），加上基线早于后续提交（Forge 47.4.13→47.4.23、TC4R 20721→20732）和未提交的 WIP 类文件。**正确做法是另开一个干净 worktree、用旧 ForgeGradle 脚本重编一次基线**（`Technomancy-1.20.1-wt/fg6-baseline`），两个构建都来自 HEAD 的 LF checkout，剩下的差异才是真正的工具链差异。
+
 ### S1：接入 1.21.1 节点骨架
 
 - 写 `build.1.21.1-neoforge.gradle.kts`，接上 TC4R 1.21.1 的 `local-repo`（**前提：运行时 jar 已到位**）。
@@ -456,8 +486,8 @@ Technomancy/
 
 | # | 风险 | 可能性 | 影响 | 缓解 |
 |---|---|---|---|---|
-| **R1** | 1.20.1 节点从 ForgeGradle 6 换到 LegacyForge，构建行为出现差异 | 中 | **高**（动到已发货产物） | **已激活**（S-1a 判定必须 Gradle 9）；S-1b 已证能编译 + reobfJar；S0 的 jar 逐项比对门禁 + `runClient`/GameTest 实测是最终防线 |
-| **R2** | ModDevGradle 下 **GameTest 运行类型不可用** | 低 | 中（丢 30 个 GameTest） | **已降级**：S-1b 证实 `gameTestServer` 可注册；实际用例执行留待 S4 实测 |
+| **R1** | 1.20.1 节点从 ForgeGradle 6 换到 LegacyForge，构建行为出现差异 | 中 | **高**（动到已发货产物） | **已化解**（S0 实测）：862/863 项逐字节一致，唯一差异是 manifest 里 4 个 Stonecutter 溯源属性；JUnit 267/267、GameTest 107/107、`runClient` 到主菜单全部通过。详见 §10 S0 结果 |
+| **R2** | ModDevGradle 下 **GameTest 运行类型不可用** | 低 | 中（丢 30 个 GameTest） | **已解除**：S0 实跑 `runGameTestServer`，**107/107 全绿** |
 | **R3** | Stonecutter 0.9.8 的 Gradle 下限高于 8.8 | — | 中（触发 R1） | **已确认为真**：0.9.8/0.8.4 需 Gradle 9，0.7.11 是 8.8 的最后可用版本。已接受"上 Gradle 9 + LegacyForge" |
 | **R4** | 1.21.1 的 TC4R **运行时 jar 缺失** | — | — | **已解除**：`1.21.1-neoforge-20736.zip` 含 4 个运行时 jar（`thaumcraft-neoforge-4.2.3.5-1.21.1-port.0.1.0-20736.jar`，18.5 MB），16 个内部类齐全，且为 **official mappings（0 个 SRG 名）**，无需重映射 |
 | **R5** | `fg.deobf` → `mod*` 重映射配置的语义差异（**非传递**） | 低 | 中 | 现有代码已大量 `transitive = false`，语义吻合；逐个依赖核对 |
@@ -467,6 +497,7 @@ Technomancy/
 | **R9** | 两个 DEV 客户端端口冲突 | 高 | 低 | 探针端口按节点区分（48791 / 48792） |
 | **R10** | 条件注释密度失控，源码可读性下降 | 中 | 中 | 严守三层机制：能替换的不写条件；整段不同的进 `versions/<节点>/src` |
 | **R11** | 替换规则写在 `build.gradle.kts` 里被**静默忽略**；资源扩展名未注册 handler 导致替换"看着写了却不生效" | **高**（已踩） | 中（排查成本高） | **已固化**：替换一律写在 `stonecutter.gradle.kts` 的 `parameters { replacements {} }`；`json`/`mcmeta`/`toml` 等必须 `handlers { inherit(...) }` 注册。见 §10 S-1c 陷阱表 |
+| **R12** | 换到 MDG 后"不报错但行为错"的配置坑（相对路径按节点目录解析、test 源集缺 Minecraft、测试工作目录、手写 `mixin.env.*` 覆盖 MDG 默认值、`project.name` 变成节点名） | **高**（S0 已全部踩到） | 中 | **已固化**：5 处修法见 §10 S0 结果表；门禁里"jar 逐字节比对 + GameTest + runClient"正是用来兜住这类静默差异的 |
 
 ---
 
@@ -475,25 +506,27 @@ Technomancy/
 按顺序做，每一项都能独立否掉后续。**S-1 已把 1/2/4/6 钉死，状态如下：**
 
 1. ~~**Stonecutter 0.9.8 × Gradle 8.8**~~ → **已答**：0.9.8/0.8.4 需 Gradle 9，0.7.11 是 8.8 最后可用版。R1 激活。
-2. **ModDevGradle LegacyForge × Forge 1.20.1 × TC4R** → **核心已过**（编译 + reobfJar + `gameTestServer` 注册）；`runClient` 与真实 GameTest 执行待 S0 门禁补测。
-3. **ModDevGradle 下的 GameTest 运行类型** → **可注册已证**；能否实际跑通用例待 S4。
+2. ~~**ModDevGradle LegacyForge × Forge 1.20.1 × TC4R**~~ → **已全过**（S0）：编译 + reobfJar + jar 逐字节比对 + `runClient` 到主菜单 + GameTest 107/107。
+3. ~~**ModDevGradle 下的 GameTest 运行类型**~~ → **已全过**（S0 实跑 107/107）。
 4. ~~**Stonecutter Replacements 对 JSON / 资源路径的作用范围**~~ → **已答**：默认不处理 `json`/`mcmeta`，需 `handlers { inherit("json5", ...) }` 注册；注册后替换生效且按节点门控。见 §10 S-1c。
-5. **Stonecutter 的 `versions/<节点>/` 资源覆盖语义**（`src/main/resources` 与节点资源的优先级）→ **待验证**（S0 起验证）。
+5. **Stonecutter 的 `versions/<节点>/` 资源覆盖语义**（`src/main/resources` 与节点资源的优先级）→ **仍待验证**（S0 未用到节点级资源；S2/S3 分叉资源时再测）。
 6. ~~**1.21.1 的 TC4R 运行时 jar 是否存在、什么形态**~~ → **已答**：存在（20736 运行时 jar，official mappings，16 内部类齐全）。
-7. **ModDevGradle 的 `mod*` 配置对 TC4R 这种"本地 maven + 非传递"依赖的处理** → **已初步验证**（`modCompileOnly` + `transitive = false` 编译通过）；运行时装配待 S1。
-8. **`pack.mcmeta` 在 Stonecutter 下的展开方式** → **已答**：用 `handlers { inherit("json5", "mcmeta") }` + 一条 string 替换把 `pack_format` 从 15 换到 34，实测生效；不必再用 Gradle `expand`。
+7. **ModDevGradle 的 `mod*` 配置对 TC4R 这种"本地 maven + 非传递"依赖的处理** → **已全过**（S0：`modImplementation` + `transitive = false` 编译并成功进 dev 运行时，TC4R mixin/refmap 正常）。
+8. **`pack.mcmeta` 在 Stonecutter 下的展开方式** → **已答**：用 `handlers { inherit("json5", "mcmeta") }` + 一条 string 替换把 `pack_format` 从 15 换到 34，实测生效；不必再用 Gradle `expand`。**S0 现状**：1.20.1 节点仍用 Gradle `expand`（与单版本行为一致），到 S2 引入替换规则时再切。
 
 ---
 
 ## 13. 本次没有做的事
 
-- 没有改动**主仓库**的任何源码、构建脚本或资源文件（S-1 的三个 spike 全在 `H:\MinecraftMods\_spikes\` 里，一次性、不入库）。
-- 没有创建分支、没有向主仓库安装任何插件。
+- **`main` 的构建脚本与源码一个字节都没改。** S0 的全部构建改动在 worktree `H:\MinecraftMods\Technomancy-1.20.1-wt\multiversion` + 分支 `multiversion` 上；`main` 的已发货构建脚本仍是 ForgeGradle 6。本文档（规划/记录）仍提交在 `main`，与之前两篇方案文档一致。
+- **没有合并 `multiversion` 到 `main`。** 按 §14，要等 S1–S4 把两个节点都打通、CI 矩阵改造完，再决定合并时机。
+- **`src/` 一个字节都没改**（S0 门禁之一）。
+- 没有实现 1.21.1 节点（`build.gradle` 里 `else` 分支只打一行提示），没有写任何替换规则。
 - 没有评估 `compat/` 下 5 个可选模块（GTCEu / Botania / Jade / KubeJS / JEI）在双版本下的取舍——它们各自要跟 1.21.1 的版本，建议整体后置。**已知阻塞**：Botania 目前没有 1.21.1 版本。
-- 工作区里未提交的 TC4R 20721→20732 升级改动未触碰。
+- 工作区里未提交的 TC4R 20721→20732 升级改动未触碰（S0 的基线仍是 20721）。
 
-## 14. S-1 之后的下一步
+## 14. 下一步
 
-S-1 全部通过，按 §10 进 **S0：仓库重构，只保留 1.20.1 节点**（引入 Stonecutter + 把 1.20.1 节点从 ForgeGradle 6 迁到 ModDevGradle LegacyForge，`src/` 零改动，用"jar 内容一致 + `runClient` + GameTest 全绿"做门禁）。
+**S0 已完成，全部门禁通过**（见 §10 S0 结果）。按 §10 进 **S1：接入 1.21.1 节点骨架** —— 在 `build.gradle` 的 `else` 分支里应用 `net.neoforged.moddev`（NeoForge 节点），接上 TC4R 1.21.1 的本地工件（20736 运行时 jar），声明 1.21.1 侧的依赖版本（NeoForge 21.1.259 / curios 9.5.1 / TerraBlender 4.1.0.8 / JEI 19.57.0.451 / Jade 15.10.6 等）。此时 `src/` 仍是 1.20.1 形状，1.21.1 节点**必然编译失败**——这是预期的，S1 的门禁只是"`buildAndCollect` 能产出两个 jar（1.21.1 那个可以是失败的构建，但管线结构成立）"。
 
-S0 直接后果是**把 1.20.1 节点的构建工具链从 ForgeGradle 6 换成 ModDevGradle LegacyForge**（S-1a 判定必须 Gradle 9 带来的，R1）。这是一次动到已发货产物的迁移，所以 S0 在**独立分支**上做，门禁不过就不合并。
+S0 的直接后果是**把 1.20.1 节点的构建工具链从 ForgeGradle 6 换成了 ModDevGradle LegacyForge**（S-1a 判定必须 Gradle 9 带来的，R1）。这次迁移动到了已发货产物，因此放在**独立分支**上做、门禁不过就不合并；现在门禁已全过（R1 化解），可以安全推进 S1。
