@@ -14,7 +14,11 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
 import net.minecraftforge.common.MinecraftForge;
+//? if forge {
 import net.minecraftforge.event.TickEvent;
+//?} else {
+/*import net.neoforged.neoforge.client.event.ClientTickEvent;
+*///?}
 import net.minecraftforge.eventbus.api.IEventBus;
 import theflogat.technomancy.common.network.TechnomFxPacket;
 
@@ -112,10 +116,14 @@ public final class TechnomClientFx {
         return new Bolt(xs, ys, zs, rgb);
     }
 
+    //? if forge {
     private static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+    //?} else {
+    /*private static void onClientTick(ClientTickEvent.Post event) {
+    *///?}
         if (Minecraft.getInstance().level == null) {
             BOLTS.clear();
             return;
@@ -172,6 +180,10 @@ public final class TechnomClientFx {
     }
 
     private static void vertex(VertexConsumer consumer, Matrix4f mat, Vec3 at, int r, int g, int b, int a) {
+        //? if forge {
         consumer.vertex(mat, (float) at.x, (float) at.y, (float) at.z).color(r, g, b, a).endVertex();
+        //?} else {
+        /*consumer.addVertex(mat, (float) at.x, (float) at.y, (float) at.z).setColor(r, g, b, a);
+        *///?}
     }
 }

@@ -214,6 +214,7 @@ public final class QuantumJarRenderer implements BlockEntityRenderer<QuantumJarB
 
     private static void vertex(VertexConsumer vertices, PoseStack.Pose pose, float x, float y, float z,
             int red, int green, int blue, int alpha, float u, float v, int light, Direction normal) {
+        //? if forge {
         vertices.vertex(pose.pose(), x, y, z)
                 .color(red, green, blue, alpha)
                 .uv(u, v)
@@ -221,5 +222,13 @@ public final class QuantumJarRenderer implements BlockEntityRenderer<QuantumJarB
                 .uv2(light)
                 .normal(pose.normal(), normal.getStepX(), normal.getStepY(), normal.getStepZ())
                 .endVertex();
+        //?} else {
+        /*vertices.addVertex(pose.pose(), x, y, z)
+                .setColor(red, green, blue, alpha)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(light)
+                .setNormal(pose, normal.getStepX(), normal.getStepY(), normal.getStepZ());
+        *///?}
     }
 }

@@ -68,7 +68,11 @@ public final class RitualTomeScreen extends Screen {
     }
 
     @Override
+    //? if forge {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    //?} else {
+    /*public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double delta) {
+    *///?}
         if (activeTab >= 0 && activeEntry >= 0) {
             turnPage(delta > 0 ? -1 : 1);
         } else {
@@ -167,7 +171,11 @@ public final class RitualTomeScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        //? if forge {
         renderBackground(g);
+        //?} else {
+        /*renderBackground(g, mouseX, mouseY, partialTick);
+        *///?}
         float scale = computeScale();
         int left = bookLeft();
         int top = bookTop();

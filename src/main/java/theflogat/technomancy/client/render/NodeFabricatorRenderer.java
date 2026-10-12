@@ -1,7 +1,6 @@
 package theflogat.technomancy.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -93,8 +92,6 @@ public final class NodeFabricatorRenderer implements BlockEntityRenderer<NodeFab
      */
     public static void draw(Direction facing, float spin, PoseStack pose, MultiBufferSource buffers,
             int packedLight, int packedOverlay) {
-        VertexConsumer core = buffers.getBuffer(RenderType.entityCutout(TEXTURE));
-        VertexConsumer boards = buffers.getBuffer(RenderType.entityTranslucent(TEXTURE));
 
         pose.pushPose();
         pose.scale(-1.0F, -1.0F, 1.0F);
@@ -108,10 +105,11 @@ public final class NodeFabricatorRenderer implements BlockEntityRenderer<NodeFab
         // behind them.
         pose.pushPose();
         pose.mulPose(Axis.XP.rotationDegrees(spin));
-        MODEL.render(CORE, pose, core, packedLight, packedOverlay);
+        MODEL.render(CORE, pose, buffers.getBuffer(RenderType.entityCutout(TEXTURE)), packedLight, packedOverlay);
         pose.popPose();
 
-        MODEL.renderExcept(pose, boards, packedLight, packedOverlay, CORE);
+        // Fetched only now: requesting it earlier would have ended the core's batch.
+        MODEL.renderExcept(pose, buffers.getBuffer(RenderType.entityTranslucent(TEXTURE)), packedLight, packedOverlay, CORE);
         pose.popPose();
     }
 

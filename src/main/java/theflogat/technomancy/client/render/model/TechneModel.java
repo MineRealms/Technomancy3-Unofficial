@@ -113,7 +113,11 @@ public final class TechneModel {
      */
     public void render(String name, PoseStack pose, VertexConsumer vertices, int light, int overlay,
             float red, float green, float blue, float alpha) {
+        //? if forge {
         part(name).render(pose, vertices, light, overlay, red, green, blue, alpha);
+        //?} else {
+        /*part(name).render(pose, vertices, light, overlay, net.minecraft.util.FastColor.ARGB32.colorFromFloat(alpha, red, green, blue));
+        *///?}
     }
 
     /**
@@ -124,7 +128,11 @@ public final class TechneModel {
     public void render(PoseStack pose, VertexConsumer vertices, int light, int overlay,
             float red, float green, float blue, float alpha) {
         for (String name : order) {
+            //? if forge {
             parts.get(name).render(pose, vertices, light, overlay, red, green, blue, alpha);
+            //?} else {
+            /*parts.get(name).render(pose, vertices, light, overlay, net.minecraft.util.FastColor.ARGB32.colorFromFloat(alpha, red, green, blue));
+            *///?}
         }
     }
 

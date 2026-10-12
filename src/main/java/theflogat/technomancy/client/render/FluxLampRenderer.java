@@ -14,7 +14,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import dev.tc4port.thaumcraft.block.entity.EssentiaTubeBlockEntity;
 import theflogat.technomancy.Technomancy;
 import theflogat.technomancy.client.render.model.TechneModel;
@@ -117,8 +116,6 @@ public final class FluxLampRenderer implements BlockEntityRenderer<FluxLampBlock
         // discards those texels instead of letting them darken what is behind them, and the solid
         // box keeps writing depth. The nozzles are small and rarely overlap, so they can be
         // blended the way the original's glEnable(GL_BLEND) did.
-        VertexConsumer solid = buffers.getBuffer(RenderType.entityCutout(TEXTURE));
-        VertexConsumer blended = buffers.getBuffer(RenderType.entityTranslucent(TEXTURE));
 
         pose.pushPose();
         pose.scale(-1.0F, -1.0F, 1.0F);
@@ -126,7 +123,8 @@ public final class FluxLampRenderer implements BlockEntityRenderer<FluxLampBlock
         pose.mulPose(Axis.YP.rotationDegrees(-90.0F));
 
         if (placed && level != null && pos != null) {
-            drawNozzles(level, pos, pose, blended, packedLight, packedOverlay);
+            drawNozzles(level, pos, pose, buffers.getBuffer(RenderType.entityTranslucent(TEXTURE)),
+                    packedLight, packedOverlay);
         }
 
         // The original's glColor3f(amount, 0, amount) sat *inside* `if (tank.getFluidAmount() > 0)`.
@@ -134,6 +132,8 @@ public final class FluxLampRenderer implements BlockEntityRenderer<FluxLampBlock
         // core is drawn through cutout, and two thirds of its texels are alpha 0, so with an empty
         // tank `amount` is 0 and the surviving third is painted (0, 0, 0, 1) - a solid black box
         // where the glass should be. An empty lamp has to stay untinted white.
+        // Fetched after the nozzles: a consumer does not survive another RenderType being requested.
+        VertexConsumer solid = buffers.getBuffer(RenderType.entityCutout(TEXTURE));
         if (amount > 0) {
             // Anything from one mB up clamps to full magenta, exactly as glColor3f did.
             float tint = Math.min(1.0F, amount);
@@ -185,6 +185,6 @@ public final class FluxLampRenderer implements BlockEntityRenderer<FluxLampBlock
         }
         BlockEntity neighbour = level.getBlockEntity(at);
         return neighbour != null
-                && neighbour.getCapability(ForgeCapabilities.FLUID_HANDLER, side.getOpposite()).isPresent();
+                && theflogat.technomancy.common.platform.CapabilityAccess.fluids(neighbour, side.getOpposite()) != null;
     }
 }

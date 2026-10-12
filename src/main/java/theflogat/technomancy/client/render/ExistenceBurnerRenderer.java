@@ -100,25 +100,25 @@ public final class ExistenceBurnerRenderer implements BlockEntityRenderer<Existe
         // draws flush in that same order. The original never enabled blending - it relied on the
         // alpha test that 1.7.10 leaves on for tile entities - so cutout is the match: it discards
         // the sheet's transparent texels instead of blending them.
-        VertexConsumer anvil = buffers.getBuffer(RenderType.entityCutout(ANVIL));
-        VertexConsumer bottomSheet = buffers.getBuffer(RenderType.entityCutout(BOTTOM));
-        VertexConsumer white = buffers.getBuffer(RenderType.entityCutout(WHITE));
-
+        // Each consumer is fetched just before it is used: requesting another RenderType ends the
+        // previous batch, so a consumer held across that call is no longer building.
         pose.pushPose();
         pose.translate(0.5F, 0.0F, 0.5F);
 
         // bindTexture(modelTexture); model.render()
+        VertexConsumer anvil = buffers.getBuffer(RenderType.entityCutout(ANVIL));
         MODEL.render(POST, pose, anvil, packedLight, packedOverlay);
         MODEL.render(TOP, pose, anvil, packedLight, packedOverlay);
 
         // if (meta == 1) bindTexture(bottom); model.renderBottom(). The original only rebound the
         // texture for the dynamic variant, so the static burner's bottom plate is drawn on the
         // anvil sheet the core used.
-        MODEL.render(BOTTOM_PLATE, pose, dynamic ? bottomSheet : anvil, packedLight, packedOverlay);
+        MODEL.render(BOTTOM_PLATE, pose,
+                buffers.getBuffer(RenderType.entityCutout(dynamic ? BOTTOM : ANVIL)), packedLight, packedOverlay);
 
         // bindTexture(cube); model.renderCube(meta == 1). The original tinted with
         // glColor3f(burn ? 0.5F : 0, 0.7F, 0) and then reset to white, so only the cube is tinted.
-        MODEL.render(CUBE, pose, white, packedLight, packedOverlay,
+        MODEL.render(CUBE, pose, buffers.getBuffer(RenderType.entityCutout(WHITE)), packedLight, packedOverlay,
                 dynamic ? 0.5F : 0.0F, 0.7F, 0.0F, 1.0F);
 
         pose.popPose();

@@ -1,11 +1,11 @@
 package theflogat.technomancy.client;
 
+import java.util.function.Supplier;
 import java.util.List;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.RegistryObject;
 import theflogat.technomancy.common.blocks.technom.existence.ExistencePylonBlock;
 import theflogat.technomancy.common.registry.TechnomBlocks;
 
@@ -37,7 +37,7 @@ final class S3ExistenceClient {
     }
 
     private static void registerBlockColors(RegisterColorHandlersEvent.Block event) {
-        for (RegistryObject<Block> pylon : pylons()) {
+        for (Supplier<Block> pylon : pylons()) {
             event.register((state, level, pos, tint) ->
                     tint == 0 && state.getBlock() instanceof ExistencePylonBlock block
                             ? block.tier().cubeTint() : -1,
@@ -46,7 +46,7 @@ final class S3ExistenceClient {
     }
 
     private static void registerItemColors(RegisterColorHandlersEvent.Item event) {
-        for (RegistryObject<Block> pylon : pylons()) {
+        for (Supplier<Block> pylon : pylons()) {
             event.register((stack, tint) ->
                     tint == 0 && pylon.get() instanceof ExistencePylonBlock block
                             ? block.tier().cubeTint() : -1,
@@ -54,7 +54,7 @@ final class S3ExistenceClient {
         }
     }
 
-    private static List<RegistryObject<Block>> pylons() {
+    private static List<Supplier<Block>> pylons() {
         return List.of(
                 TechnomBlocks.EXISTENCE_PYLON_BASIC,
                 TechnomBlocks.EXISTENCE_PYLON_ADVANCED,

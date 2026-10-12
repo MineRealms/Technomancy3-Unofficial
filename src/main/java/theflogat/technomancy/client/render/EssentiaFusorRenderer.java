@@ -79,6 +79,7 @@ public final class EssentiaFusorRenderer implements BlockEntityRenderer<Essentia
 
     private static void vertex(VertexConsumer vertices, PoseStack.Pose pose, float x, float y, float z,
             int red, int green, int blue, float u, float v, int light) {
+        //? if forge {
         vertices.vertex(pose.pose(), x, y, z)
                 .color(red, green, blue, 255)
                 .uv(u, v)
@@ -86,5 +87,13 @@ public final class EssentiaFusorRenderer implements BlockEntityRenderer<Essentia
                 .uv2(light)
                 .normal(pose.normal(), 0.0F, 1.0F, 0.0F)
                 .endVertex();
+        //?} else {
+        /*vertices.addVertex(pose.pose(), x, y, z)
+                .setColor(red, green, blue, 255)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(light)
+                .setNormal(pose, 0.0F, 1.0F, 0.0F);
+        *///?}
     }
 }

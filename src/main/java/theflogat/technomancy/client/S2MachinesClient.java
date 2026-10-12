@@ -33,12 +33,18 @@ final class S2MachinesClient {
 
     static void init(IEventBus modBus) {
         modBus.addListener(S2MachinesClient::registerItemColors);
+        //? if neoforge {
+        /*modBus.addListener((net.neoforged.neoforge.client.event.RegisterMenuScreensEvent event) ->
+                event.register(TechnomMenus.PROCESSOR.get(), ProcessorScreen::new));
+        *///?}
     }
 
     /** Runs inside {@code FMLClientSetupEvent.enqueueWork}, which is where both of these belong. */
     static void clientSetup() {
         ItemBlockRenderTypes.setRenderLayer(TechnomBlocks.CREATIVE_JAR.get(), RenderType.translucent());
+        //? if forge {
         MenuScreens.register(TechnomMenus.PROCESSOR.get(), ProcessorScreen::new);
+        //?}
     }
 
     static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {

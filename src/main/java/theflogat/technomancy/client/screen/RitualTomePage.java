@@ -217,7 +217,12 @@ public final class RitualTomePage {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static CraftingRecipe findRecipe(Level level, ItemStack result) {
+        //? if forge {
         for (Recipe r : level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING)) {
+        //?} else {
+        /*for (var holder : level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING)) {
+            Recipe r = holder.value();
+        *///?}
             if (!(r instanceof CraftingRecipe cr)) continue;
             ItemStack out = cr.getResultItem(level.registryAccess());
             if (ItemStack.isSameItemSameTags(out, result)

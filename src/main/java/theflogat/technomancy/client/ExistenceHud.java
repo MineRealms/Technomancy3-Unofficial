@@ -3,9 +3,9 @@ package theflogat.technomancy.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+//? if forge {
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
+//?}
 import theflogat.technomancy.Technomancy;
 
 /**
@@ -32,11 +32,22 @@ public final class ExistenceHud {
     }
 
     private static void registerOverlays(RegisterGuiOverlaysEvent event) {
+        //? if forge {
         event.registerAboveAll("technom_existence", (IGuiOverlay) ExistenceHud::render);
+        //?} else {
+        /*event.registerAboveAll(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                Technomancy.MOD_ID, "existence"), (graphics, delta) -> draw(graphics));
+        *///?}
     }
 
+    //? if forge {
     private static void render(net.minecraftforge.client.gui.overlay.ForgeGui gui, GuiGraphics graphics,
             float partialTick, int width, int height) {
+        draw(graphics);
+    }
+    //?}
+
+    private static void draw(GuiGraphics graphics) {
         if (Minecraft.getInstance().player == null || Minecraft.getInstance().options.hideGui) {
             return;
         }
