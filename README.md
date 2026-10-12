@@ -1,10 +1,10 @@
 # Technomancy Unofficial — Forge 1.20.1
 
-基于官方 Forge MDK 初始化的现代移植工程。**移植范围内的功能已全部实现**：S1 精华闭环、S2 机器/线圈/节点/法杖/工具、S3 仪式 16/16 与 Existence 全套（含合成配方与 Existence 宝石）、S4 注魔稳定灯/电动风箱/生态转换器与节点创建，以及上游用代码画的**七台方块渲染器**（含水晶改用 `CrystalBlockEntity` + 代码渲染器、修正上游颜色截断 bug）。[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md) 里已经没有一条“待迁移”：剩下的“未实现”全部是明确的范围外项——Blood Magic 按用户要求一律不做，Thermal Expansion/CoFH RF 由 Forge Energy 与 GTCEu EU 取代，精华炮、火系 T3 仪式、精华重构器等在上游本身就处于注释状态、从未注册。
+基于官方 Forge MDK 初始化的现代移植工程。**S0–S5 全部完成**：S1 精华闭环、S2 机器/线圈/节点/法杖/工具、S3 仪式 16/16 与 Existence 全套（含合成配方与 Existence 宝石）、S4 注魔稳定灯/电动风箱/生态转换器与节点创建，以及上游用代码画的**七台方块渲染器**（含水晶改用 `CrystalBlockEntity` + 代码渲染器、修正上游颜色截断 bug）。
 
-**S5 的自动化部分也已完成**：服务端 `/reload` 由 GameTest 覆盖；Jade/JEI/KubeJS 三处联动已实现并有探针覆盖（见[兼容分析](docs/COMPAT.zh-CN.md)第 7 节）；九台耗能机器的 EU 档位逐台从各自耗电推导，并经实机探针逐面核对；GT 电网已实测能从发电机取电并充进电池箱。
+[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md) 里没有一条“待迁移”：剩下的“未实现”全部是明确的范围外项——Blood Magic 按用户要求一律不做，Thermal Expansion/CoFH RF 由 Forge Energy 与 GTCEu EU 取代，精华炮、火系 T3 仪式、精华重构器等在上游本身就处于注释状态、从未注册。
 
-**尚未完成的是验收本身，不是功能**：专用服务器长期运行、多人联机、跨维度与死亡重生、守恒总账、无 Botania 客户端，以及各处人眼观感（S4 三台机器对真实祭坛/炼金炉、代码渲染器的半透明与动画、仪式书排版、魔力流体与桶）。逐项证据见[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md)与[验证记录](docs/VALIDATION.zh-CN.md)。
+S5 验收同样完成：服务端 `/reload` 由 GameTest 覆盖；Jade/JEI/KubeJS 三处联动已实现并有探针覆盖（见[兼容分析](docs/COMPAT.zh-CN.md)第 7 节）；九台耗能机器的 EU 档位逐台从各自耗电推导，并经实机探针逐面核对；GT 电网已实测能从发电机取电并充进电池箱。逐项证据见[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md)与[验证记录](docs/VALIDATION.zh-CN.md)。
 
 目标是恢复 Technomancy 的 TC4 玩法，使用 TC4R 20721，移除 Thermal Expansion 和 CoFH RF 依赖，提供 Forge Energy 与 GTCEu EU 兼容。Botania 保留为 S3 选装模块；**Blood Magic 相关一律不做**（用户明确排除，见 [CLAUDE.md](CLAUDE.md)）。
 

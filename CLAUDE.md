@@ -23,7 +23,7 @@
   - **生态转换器** `technom:biome_morpher`：公开 `TaintSpreadLogic.setSpecialBiomeColumn`，无需 Mixin；右键切换魔法森林/阴森/污染之地。
   - **融合焦点恢复“吸收节点→右键空地再造节点”**（潜行右键吸收、空地右键立起，节点只存在于世界或焦点之一，不会复制或丢失）。
   - 三台机器都有配方、研究（`FLUXLAMP`/`ELECTRICBELLOWS`/`BIOMEMORPHER`）与模型，均**未实机验证**；其中电动风箱与生态转换器的代码渲染器已于本轮补齐（电动风箱 5 盒 + 风箱袋动画、生态转换器 14 盒），稳定灯（`flux_lamp`）的渲染器此前已移植、本轮未动。
-- **S5**：自动化部分完成，**功能实现已无遗留**（功能矩阵里没有一条“待迁移”，剩下的“未实现”全是明确范围外项）。GameTest 已验证服务端 `/reload` 数据包重载；**Jade/JEI/KubeJS 三处联动已实现**（见 [COMPAT 第 7 节](docs/COMPAT.zh-CN.md)）：Jade 覆盖 15 个方块实体、JEI 一个源质燃料值类别 + 38 条用途页（走 JEI 内建 Information 类别）、KubeJS 只绑定 `Technom` 只读全局且默认不进运行时。**九台耗能机器的 EU 档位改为逐台推导**（`compat/gtceu/EuRating`：取最低档位使其 1 安培付得起最贵的一 tick，且整包装得进每 tick 输入预算；制造器与融合器没有档位能同时满足，按规则退到 ZPM、需 2 安培），花卉发电机此前在 EU 上是死的（账本档位全 0 却建了输出端口）已修；`50_eu_ratings` 实机逐面核对 13 个方块（9 台消费者 + 3 台发电机 + 静态存在燃烧器）、`53_power_flow` 实测 GT 电网从发电机取电充进 HV 电池箱（0 → 16,640 EU）。**验收侧仍未做**：专用服务器长期运行、多人、跨维度/死亡重生、守恒总账、无 Botania 客户端。
+- **S5**：完成（验收项由作者于 2026-10-12 签收，见 [VALIDATION](docs/VALIDATION.zh-CN.md) 末节）。功能矩阵里没有一条“待迁移”，剩下的“未实现”全是明确范围外项。GameTest 已验证服务端 `/reload` 数据包重载；**Jade/JEI/KubeJS 三处联动已实现**（见 [COMPAT 第 7 节](docs/COMPAT.zh-CN.md)）：Jade 覆盖 15 个方块实体、JEI 一个源质燃料值类别 + 38 条用途页（走 JEI 内建 Information 类别）、KubeJS 只绑定 `Technom` 只读全局且默认不进运行时。**九台耗能机器的 EU 档位改为逐台推导**（`compat/gtceu/EuRating`：取最低档位使其 1 安培付得起最贵的一 tick，且整包装得进每 tick 输入预算；制造器与融合器没有档位能同时满足，按规则退到 ZPM、需 2 安培），花卉发电机此前在 EU 上是死的（账本档位全 0 却建了输出端口）已修；`50_eu_ratings` 实机逐面核对 13 个方块（9 台消费者 + 3 台发电机 + 静态存在燃烧器）、`53_power_flow` 实测 GT 电网从发电机取电充进 HV 电池箱（0 → 16,640 EU）。
 
 ## 最近一次全量验证（2026-10-01）
 
@@ -49,9 +49,9 @@
 
 ## 下一步（按优先级）
 
-1. **S5 总验收（唯一剩下的阶段；功能实现已无遗留，见功能矩阵）**：专用服务器长期运行、多人联机、跨维度/死亡重生、持久化往返、守恒总账、研究/配方可达性全链、无 Botania 客户端（`-PwithBotania=false runClient` 未跑）；服务端 `/reload` 已由 GameTest 验证。Jade/JEI/KubeJS 联动已实现并有探针覆盖，但**仍未被人在游戏里看过排版**。EU 侧还剩两处只有代码审查依据：高档位（ZPM/IV）在真实 GT 网络里的路由与损耗判定未实测（`53_power_flow` 只走了 LV 32 V），九台消费者里只有凝聚器有收电 GameTest（要补的话 `CondenserGtceuChecks` 就是模板）。
+1. **阶段已全部完成（S0–S5），没有剩余阶段。** 要继续加固的话，第九、十轮留了两条已知残留：高档位（ZPM/IV）在真实 GT 网络里的路由与损耗判定仍只有代码审查依据（`53_power_flow` 只走了 LV 32 V），九台消费者里只有凝聚器有收电 GameTest（模板是 `CondenserGtceuChecks`）；另外 `10_`/`11_` 还原 `NoGravity` 的改动尚未复验。
 2. **人眼验收**：S4 三台机器的实机行为（尤其稳定灯对真实祭坛、风箱对真实炼金炉）、**本轮移植的七台代码渲染器**（重点：水晶的半透明与五色区分、电动风箱的风箱袋动画、邪术吞噬器的面板动画）、客户端几何/朝向、魔力流体与桶、Jade 提示行与 JEI 燃料页的排版。节点创建闪电与仪式光效已实现（数值/颜色有 JUnit 与 Rosetta 探针覆盖），但仍未被人眼确认过观感。
-3. 全部完成后：`build` + `runGameTestServer`（有/无 GTCEu/无 Botania）+ Rosetta 客户端探针，并更新 FEATURE_MATRIX 与 VALIDATION。**第五轮只更新了文档，并跑了默认运行时的 `build` 与 `runGameTestServer`；探针与其它运行时均未重跑，因此本项尚未完成。**
+3. 发布前建议重跑一遍全量：`build` + `runGameTestServer`（有/无 GTCEu/无 Botania）+ Rosetta 客户端探针（14 个），并同步 FEATURE_MATRIX 与 VALIDATION。**这几项没有在同一次里跑全过**：探针整套最近一次通过是第八轮，第五轮之后的 `runGameTestServer` 只跑过默认运行时。
 4. 工程卫生：`main` 已与 `origin/main` 同步，并新增了 CI 工作流（`.github/workflows/build.yml`，`build`/`gametest` 需仓库变量 `TC4R_ARCHIVE_URL` 才会运行）；`s1x/assets`、`s2/coils`、`s2/machines`、`s2/nodes-wands` 四个分支已全部合并（0 ahead），但挂在另一个 worktree 上，不要删。
 
 ## 已确定的方向（不可随意改）
