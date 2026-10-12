@@ -1,14 +1,97 @@
 # Technomancy Unofficial — Forge 1.20.1
 
-基于官方 Forge MDK 初始化的现代移植工程。**S0–S5 全部完成**：S1 精华闭环、S2 机器/线圈/节点/法杖/工具、S3 仪式 16/16 与 Existence 全套（含合成配方与 Existence 宝石）、S4 注魔稳定灯/电动风箱/生态转换器与节点创建，以及上游用代码画的**七台方块渲染器**（含水晶改用 `CrystalBlockEntity` + 代码渲染器、修正上游颜色截断 bug）。
+> Magic and science. What can go wrong?
 
-[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md) 里没有一条“待迁移”：剩下的“未实现”全部是明确的范围外项——Blood Magic 按用户要求一律不做，Thermal Expansion/CoFH RF 由 Forge Energy 与 GTCEu EU 取代，精华炮、火系 T3 仪式、精华重构器等在上游本身就处于注释状态、从未注册。
+**Technomancy 是 Thaumcraft 4 的科技向扩展。** 它把 TC4 的**源质（essentia）**和**灵气节点（vis）**接上工业能源：用源质和节点发电、用电力驱动注魔与炼金、把源质当流体在管道里搬运、把节点当电池充放，最后连祭坛的不稳定度、炼金炉的火候和群系本身都能用电来改。
 
-S5 验收同样完成：服务端 `/reload` 由 GameTest 覆盖；Jade/JEI/KubeJS 三处联动已实现并有探针覆盖（见[兼容分析](docs/COMPAT.zh-CN.md)第 7 节）；九台耗能机器的 EU 档位逐台从各自耗电推导，并经实机探针逐面核对；GT 电网已实测能从发电机取电并充进电池箱。逐项证据见[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md)与[验证记录](docs/VALIDATION.zh-CN.md)。
+上游版本用 RF（Thermal Expansion / CoFH）作能源。本工程把它换成 **Forge Energy**，并可选接 **GTCEu 的 EU** —— 所有机器同时提供两种能力，接哪条线都行。
 
-目标是恢复 Technomancy 的 TC4 玩法，使用 TC4R 20721，移除 Thermal Expansion 和 CoFH RF 依赖，提供 Forge Energy 与 GTCEu EU 兼容。Botania 保留为 S3 选装模块；**Blood Magic 相关一律不做**（用户明确排除，见 [CLAUDE.md](CLAUDE.md)）。
+这是该模组的**非官方 1.20.1 移植版**：基于官方 Forge MDK 重写实现，对接 **TC4R（Thaumcraft 4 Reborn）**。玩法基准是上游 `37bf9a5` 中实际注册的路径，贴图、模型、数值与行为都按上游对齐；上游处于注释状态、从未注册的内容（精华炮、火系 T3 仪式、精华重构器等）不在范围内。移植已完成，没有遗留的"待迁移"项——逐条状态见[功能矩阵](docs/FEATURE_MATRIX.zh-CN.md)，验收证据见[验证记录](docs/VALIDATION.zh-CN.md)。
 
-## 开始开发
+## 特色
+
+### 源质与能量互换
+
+- **Essentia Dynamo（源质发电机）** —— 烧源质发电。燃料值表是数据驱动的（`data/technom/technomancy/essentia_fuel/`），可以用数据包改写。
+- **Node Dynamo（节点发电机）** —— 直接从灵气节点抽 vis 发电，把节点当电池用。
+- **Hippie Dynamo（花卉发电机）** —— 接 Botania 的魔力池，把 Mana 转成电。
+- **Energy Condenser（能量凝聚器）** —— 耗电把原始要素聚合成复合要素。
+- **Mana Fabricator（魔力制造器）** —— 反过来，用电产 Mana。
+- **Mana Exchanger（魔力交换器）** —— Mana 与电双向互换，配套可放置的魔力流体与魔力桶。
+
+### 源质物流
+
+- **Quantum Jar（量子罐）** —— 640 点单要素，可贴标签锁定内容，带液面与标签渲染。
+- **Quantum Reservoir（量子储库）** —— 256 点，六面双向。
+- **Essentia Coil（源质线圈）** —— 无线源质传输；**Item Coil（物品线圈）** 与 **Coil Coupler（谐频器）** 把同一套连接模型用在物品搬运上。
+- **Essentia Fusor（源质融合器）** —— 两进一出，按 TC4R 的组合规则合成要素。
+- **Creative Jar（创造罐）** —— 创造模式专用，无限输出任意要素。
+
+### 加工链
+
+- **Ignis Incinerator** 与 **Mana Purifier** —— TC 与 Botania 两条源质净化线，共用一套多阶段纯矿加工链（铁 / 金 / 铜 × 6 阶段）。
+- **Advanced Deconstruction Table（高级分解台）** —— 拆物品还原成要素，奖励记在放置者名下。
+- **Eldritch Consumer（邪术吞噬器）** —— 吃生物、掉落物或方块换要素，带面板动画。
+
+### 灵气节点
+
+- **Node Fabricator（节点制造器）** —— 成对多方块：用精华加电力给已有节点充能，或者干脆**凭空造一个新节点**（按法杖右键启动仪式，类型与修正按上游规则级联）。
+- **Fusion Focus（融合焦点）** —— 吸收、合并、搬运、再造节点，节点只会存在于世界或焦点其中之一，不会复制也不会丢失。
+
+### 法杖与工具
+
+- **Energized Wand Core（充能杖芯）** —— 用背包里的电给法杖补魔力。
+- **Technoturges Scepter Core（Technoturge 权杖）** —— 三种杖帽组合，容量与折扣按上游。
+- **Pen（书写笔）** 与 **Pen Core** —— 右键两张桌子组成研究桌。
+- **Potency Gem（增幅宝石）** —— 装机后吞吐 ×4，效率不变。
+- 材料线：**Neutronized Metal / Gear**、**Enchanted Coil**，以及 Botania 的 **Mana Coil**、**Manasteel Gear**。
+
+### 仪式
+
+**16 个仪式**全部到位：净化、流水、塌陷、黑洞各 T1–T3，火系 T1/T2，外加 **Extraction** 与 **Fountain of Existence**。配套五色 **Ritual Core（仪式核心）**、五色 **Crystal（水晶）**、**Basalt（玄武岩）** 与 **Ritual Tome（仪式手册）**（八页签、可翻页、能直接查配方）。
+
+### Existence
+
+一整套以"存在"为货币的自动化：**Fountain of Existence（存在喷泉）** 产能，**Existence Burner（存在燃烧器）** 烧生物换产能，**Existence Pylon（存在之塔）** 三阶传输与均衡，**Crop Accelerator / Harvester / Sealer（催熟 / 收割 / 封印）** 三变体消费。**Existence Gem（存在宝石）** 是这一整套的核心材料。玩家的亲和等级与 Existence 进度有独立的 HUD 与网络同步。
+
+### 深层 TC4 玩法
+
+- **Flux Lamp（注魔稳定灯）** —— 在真实注魔祭坛旁边降低不稳定度，副产淤泥。
+- **Electric Bellows（电动风箱）** —— 吹奥术炼金炉或原版熔炉，用电买火候。
+- **Biome Morpher（生态转换器）** —— 用电把已加载的群系改成魔法森林 / 阴森 / 污染之地。
+- **Fake Light（假空气光源）** —— 仪式结构用的隐藏光源。
+
+### 宝物
+
+**Fire Gem**、**Power Plate**、**Golden Wing** 三件宝物，由稀有的宝物村民携带；带在身上有受击与摧毁副作用，也能用 Extraction 仪式取走。
+
+### 联动
+
+| 模组 | 关系 |
+|---|---|
+| **TC4R (Thaumcraft 4 Reborn)** | **必需**。玩法本体，源质 / 要素 / 节点 / 仪式 / 注魔 API 都来自它 |
+| **GTCEu** | 选装运行时。九台耗能机器按各自耗电推导电压档位，三台发电机输出 EU；不装时全部退回 FE |
+| **Botania** | 选装。四台机器（花卉发电机、魔力制造器、植物净化器、魔力交换器）+ 魔力流体与桶 + Lexicon 词条；缺席时核心照常启动 |
+| **JEI** | 源质燃料值类别 + 38 条用途页 |
+| **Jade** | 15 个方块实体的提示行 |
+| **KubeJS** | 暴露一个只读的 `Technom` 全局，供脚本查询 |
+
+**明确不做**：Blood Magic；Thermal Expansion / CoFH RF 及其专属配方分支（由 FE / EU 取代）。
+
+## 需求
+
+| 项目 | 版本 |
+|---|---|
+| Minecraft / Java | 1.20.1 / 17 |
+| Forge / ForgeGradle / Gradle | 47.4.23 / 6.0.54 / 8.8 |
+| 模组 ID / Java 包 | `technom` / `theflogat.technomancy` |
+| TC4R | `0.1.0-20721`，必需 |
+| GTCEu | `7.5.3`，可选运行时 |
+| Curios / TerraBlender | `5.14.1+1.20.1` / `1.20.1-3.0.1.10` |
+
+版本事实以 `gradle.properties` 为准。运行时元数据严格限定当前 TC4R / GTCEu 核对版本，不宣称自动支持其他版本。
+
+## 构建
 
 需要 JDK 17。使用仓库自带 Gradle Wrapper，不需要另装 Gradle。
 
@@ -18,86 +101,67 @@ Set-Location 'H:\MinecraftMods\Technomancy-1.20.1'
 .\gradlew.bat build --console=plain --no-daemon
 ```
 
-本地 TC4R 获取方式见 [local-repo/README.md](local-repo/README.md)。其他依赖由 Gradle 下载。成品路径：`build/libs/technom-1.20.1-0.1.0-dev.jar`。
+TC4R 是**用户本地提供的构建产物**，不随仓库分发，所以第一步必须先把它导入 `local-repo/`，方式见 [local-repo/README.md](local-repo/README.md)。其他依赖由 Gradle 下载。成品路径：`build/libs/technom-1.20.1-0.1.0-dev.jar`。
 
 ```powershell
-# TC4R 基础开发环境
+# 开发运行时
 .\gradlew.bat runClient
 .\gradlew.bat runServer
 
-# 同一工程加入 GTCEu 开发运行时；不改变编译 API 和发布功能集
+# 同一工程加入 GTCEu；不改变编译 API 和发布功能集
 .\gradlew.bat runClient -PwithGtceu=true
-.\gradlew.bat runServer -PwithGtceu=true
 
 # IDE / 数据生成
 .\gradlew.bat genIntellijRuns
 .\gradlew.bat runData
 ```
 
-`build` 的 JUnit 现有 **267 项通过 / 0 失败**（35 个测试类）；`python tools/validate_technom_data.py` 为 **OK: no errors**（16 warning / 1 skip）。
+代理配置放在本机的 Gradle 用户配置中，项目不保存本机 JDK 路径或代理端口。网络环境确实需要镜像时可以传 `-PmavenCentralMirror=https://maven.aliyun.com/repository/public`。
 
-`runGameTestServer` 现有 107 个必跑 GameTest（批次见 `src/main/java/theflogat/technomancy/gametest/`），**107/107 通过**。注意覆盖面：2026-09-29 那批 95 个曾在默认、`-PwithGtceu=true`、`-PwithBotania=false`、`-PwithJade=false` 四种运行时各跑一遍，之后的三轮只跑了默认运行时。它们覆盖注册、守恒、方向、服务端 `/reload` 与安全边界，仍不等于人工实机验收。`runData` 目前仍没有内容提供器。首次手动启动服务端时按 Minecraft 的提示处理开发目录中的 EULA。
-
-## 客户端实机探针
-
-服务端与 GameTest 看不到模型、blockstate 与贴图图集，所以客户端要实机跑一遍。用 RosettaRemoteDebugBridge（`run-client/mods/rosetta_bridge_dev.jar`，桥端口 **48791**）：
+## 开发与测试
 
 ```powershell
-# 1. 非阻塞地把 dev 客户端拉成独立进程（带 GTCEu，quick-join "New World"）。
-#    必须用 Start-Process；`cmd /c start` 与直接调用都会让后台进程占住本命令的管道。
-Start-Process -FilePath .\tools\start_client_detached.cmd -ArgumentList '"New World"','"true"' -WorkingDirectory $PWD
-
-# 2. 轮询日志与桥，再对已运行的客户端跑探针
-Select-String .\build\client-run.log -Pattern 'Remote bridge listening on'   # 等这一行出现
-python .\tools\client_probe.py probes\client --attach                        # PASS/FAIL，退出码=失败数
-
-# 3. 关掉客户端（--attach 不会自动关）：桥 exec Minecraft.stop()，或 taskkill 整个 java 树
+.\gradlew.bat build --console=plain --no-daemon                                  # JUnit
+.\gradlew.bat runGameTestServer --console=plain --no-daemon                      # GameTest，默认运行时
+.\gradlew.bat runGameTestServer -PwithGtceu=true --console=plain --no-daemon
+.\gradlew.bat runGameTestServer -PwithBotania=false --console=plain --no-daemon  # Botania 缺席安全
+.\gradlew.bat runGameTestServer -PwithJade=false --console=plain --no-daemon     # Jade 缺席安全
+python tools\validate_technom_data.py                                            # 数据包校验
 ```
 
-- `tools/start_client_detached.cmd <世界> [withgtceu]`，默认 `New World` / `true`；Gradle 控制台写到 `build\client-run.log`，游戏日志在 `run-client\logs\`。
-- 客户端带 GTCEu 时 Forge 早期窗口会在无真实控制台/union FS 环境下崩（`java.nio.file.FileSystemNotFoundException`），因此 `run-client/config/fml.toml` 设 `earlyWindowControl = false`。
-- `tools/client_probe.py <探针> [--attach]`：每个探针是一段 Java 方法体，经桥在客户端线程执行并自带 PASS/FAIL；`--attach` 只跑探针，不开、不关客户端。
-- 该流程首次运行即抓到 `technom:node_dynamo` 的模型引用了不存在的 `technom:models/nodedynamo`（粒子图标为 missingno），已改为 `technom:block/nodedynamo`。
-- S3/Botania 资产重跑又抓到三个同类问题：`fake_air_light` 的 JSON 带 BOM、`existence_fountain` 引用了不会进方块图集的 `entity/` 贴图、`mana_fabricator` 用了非法的 `±15/±30` 旋转角，均已修复（见 [VALIDATION](docs/VALIDATION.zh-CN.md)）。
-- 2026-09-30 第六轮重跑探针，又抓到同一类：五颗水晶的 `particle` 指向 `technom:entity/blockcrystal`（`entity/` 不进方块图集，粒子是 missingno），已改为上游 `BlockCrystal` 实际注册的 `technom:block/catalyst_0..4`。规则现已由 `ItemModelGuardTest` 与探针 `00_` 双侧守住。
-- JEI 现在固定在 **`15.56.0.205`**（TC4R 那一侧），不再降到 `15.20.0.115`。TC4R 的 JEI 插件按 15.56+ 的 API 写（`ISubtypeInterpreter`、`ITextWidget.setPosition`），降版会让 Thaumcraft 丢掉物品子类型与整个 `thaumcraft:aspect_sources` 类别；GTCEu 7.5.3 的 `jei.FluidHelperMixin` 则要 `<= 15.35.0.175`。两者无交集，由 `GtceuJeiFluidHelperMixin` 把 GTCEu 要找的那个 `getTooltip` 重载补成空壳（priority 900，先于 GTCEu 的 1000），客户端因此能启动。`tools/jei_api_matrix.py` / `jei_link_check.py` 是这条结论的度量工具。
-- 2026-10-01 第八轮补了 **JEI 用途页**（按 `U` 出来的那一页）：`compat/jei/JeiUsagePages.java` 列了 38 条 key / 48 个物品，`TechnomJeiPlugin` 用 `IRecipeRegistration.addIngredientInfo` 一条一次调用，JEI 归入它内建的 Information 类别（描述放在滚动框里，所以长文案不会被截断）。水晶五色、仪式核心五种、存在之塔三座各自共用一条 —— 它们只差一个维度。Botania 那四条由 `BotaniaPresence.isLoaded()` 门控。表放在一个**不含任何 JEI 类型**的类里，因为 `compat/jei` 不在测试运行时类路径上（`IModPlugin` 一 `Class.forName` 就 `NoClassDefFoundError`），JUnit 守卫要靠读它来核对每个 key 都有文案。
-- 同一轮把**仪式书 53 条 + JEI 38 条文案**全部抽成 lang key（`technom.tome.*` / `technom.jei.info.*`），中英各一份。为此把 `RitualTomePage.wrap` 改成 CJK 友好断行：原先只按空格断，英文可用，**中文没有空格会把整页排成一行跑出书页**。Patchouli 图鉴则**不需要** `zh_cn` 目录 —— `BookContentsBuilder` 有硬编码的 `en_us` 兜底，正文走 `I18n`，而 `technom.lexicon.*` 的中文早已存在。守卫：`LangGuardTest`（3 条，key 从**源码**恢复）+ `RitualTomeWrapTest`（6 条）。
-- 探针目录 `probes/client/` 现在有 **14 个探针**：`40_compat_plugins` 核对 Jade/JEI/KubeJS 三处联动（Jade provider uid 与登记数量、JEI 类别页数与燃料表逐行一致、`kubejs.plugins.txt` 与插件类资源），`14_flux_lamp_and_coil` 用顶点捕获证明稳定灯空罐是白、满罐是洋红，并把模型变换链的四个喷嘴面钉死。第九、十轮又补了 `50_eu_ratings`（九台消费者与三台发电机逐面核对 EU 档位、方向与安培数）、`53_power_flow`（GT 电网确实从发电机取电并充进 HV 电池箱）、`52_jade_state` 与 `56_player_effects`。KubeJS 不进开发运行时，所以它那一半只查发现文件与类资源，不加载任何 KubeJS 类。
-- **这 14 个探针没有作为一整套重跑过**：第六、八、九、十轮各只跑了需要的几个。`10_`/`11_` 还原探针泄漏的 `NoGravity` 那处改动至今未复验——跑一次会在玩家身边铺满全部 technom 方块，属破坏性操作，所以要单独安排。
-- 2026-10-01 第八轮给 `40_` 加了一段：**JEI 用途页**（按 `U` 出来的那一页）。它遍历 JEI 内建 Information 类别里的所有条目，把覆盖到的物品 id 收成一个集合，再对着 `JeiUsagePages.PAGES` 逐条断言"JEI 能按物品找到这一页"，并断言描述文字不是原始 `technom.jei.info.*` key —— 这两件事编译期、GameTest、JUnit 都看不见。Botania 缺席时那 4 条按同样条件跳过。
-- `-PwithJade=false` 是 Jade 的缺席路径：`@WailaPlugin` 注解扫描不会加载插件类，因此整个 `compat/jade` 包在无 Jade 时不被解析。
+`validate_technom_data.py` 读的是**上一次** `runGameTestServer` 写出的注册表清单，所以要在带 Botania 的那次运行之后跑，否则 Botania 配方里的物品会被误报成"未注册"。
 
-## 持续集成
+**客户端实机探针**：服务端与 GameTest 看不到模型、blockstate 和贴图图集，这部分要拉真客户端跑。用 RosettaRemoteDebugBridge（桥端口 **48791**）：
 
-`.github/workflows/build.yml` 在 push / PR 上跑三个 job：`validate`（数据包校验器，不需要 TC4R，总是运行）、`build`（JUnit + `reobfJar`，并校验成品 jar 含 `META-INF/mods.toml` 与 `MixinConfigs`）、`gametest`（默认 / `-PwithGtceu=true` / `-PwithBotania=false` 三种运行时的 `runGameTestServer`）。
+```powershell
+# 非阻塞地把 dev 客户端拉成独立进程（带 GTCEu，quick-join "New World"）
+Start-Process -FilePath .\tools\start_client_detached.cmd -ArgumentList '"New World"','"true"' -WorkingDirectory $PWD
 
-`build` 与 `gametest` **需要仓库变量 `TC4R_ARCHIVE_URL`**（可选密钥 `TC4R_ARCHIVE_TOKEN`）：TC4R 是不可再分发的本地工件，托管 runner 无法从 Git 取到，所以未配置时这两个 job 显示为 **skipped 而不是失败**。归档内容必须与 `local-repo/DEPENDENCIES.json` 一致，`verifyLocalDependencies` 会逐个校验 SHA-256，不匹配就构建失败。
+# 等日志出现 "Remote bridge listening on"，再对已运行的客户端跑探针
+python .\tools\client_probe.py probes\client --attach    # PASS/FAIL，退出码 = 失败数
+```
+
+`tools/client_probe.py <探针> [--attach]`：每个探针是一段 Java 方法体，经桥在客户端线程执行并自带 PASS/FAIL；`--attach` 只跑探针，不开也不关客户端。
+
+### 持续集成
+
+`.github/workflows/build.yml` 在 push / PR 上跑三个 job：`validate`（数据包校验，不需要 TC4R）、`build`（JUnit + `reobfJar` + 成品 jar 检查）、`gametest`（三种运行时的 `runGameTestServer`）。
+
+后两个 **需要仓库变量 `TC4R_ARCHIVE_URL`**（可选密钥 `TC4R_ARCHIVE_TOKEN`）：TC4R 不可再分发，托管 runner 取不到，未配置时它们显示为 **skipped 而不是失败**。归档内容必须与 `local-repo/DEPENDENCIES.json` 一致，`verifyLocalDependencies` 会逐个校验 SHA-256。
 
 ## 工程文档
 
 - [总工程指导](docs/ENGINEERING_GUIDE.zh-CN.md)：架构、FE/EU 规则、TC4 API、数据持久化、里程碑与验收要求。
-- [功能迁移矩阵](docs/FEATURE_MATRIX.zh-CN.md)：实际功能范围、依赖组、迁移状态和验证条件。
-- [源码基线与取舍](docs/SOURCE_BASELINE.zh-CN.md)：原版/1.12 分支关系、可吸收改动和旧代码问题。
-- [兼容与联动分析](docs/COMPAT.zh-CN.md)：原版 compat 清单、目标整合包环境、TC4R 20711/20721 API 差异与 Thaumic Energistics 的自动兼容结论。
-- [Botania 规格与对齐清单](docs/BOTANIA.zh-CN.md)：四台 Botania 机器的上游精确数值、已知偏差与未验证项（已实施，保留作复核依据）。
+- [功能迁移矩阵](docs/FEATURE_MATRIX.zh-CN.md)：逐条功能的来源、阶段与状态。
+- [验证记录](docs/VALIDATION.zh-CN.md)：实际执行过的检查、未验证边界、GameTest 批次与结果。
+- [源码基线与取舍](docs/SOURCE_BASELINE.zh-CN.md)：原版 / 1.12 分支关系、可吸收改动和旧代码问题。
+- [兼容与联动分析](docs/COMPAT.zh-CN.md)：原版 compat 清单、目标整合包环境、TC4R 版本差异、Thaumic Energistics 结论。
+- [Botania 规格与对齐清单](docs/BOTANIA.zh-CN.md)：四台 Botania 机器的上游精确数值、已知偏差与未验证项。
 - [Claude/agent 交接入口](CLAUDE.md)：当前进度、下一步、读文件顺序与不可改动方向。
-- [初始化验证记录](docs/VALIDATION.zh-CN.md)：本次实际执行的检查与尚未验证的边界。
 - [官方 MDK 来源与校验](docs/MDK_PROVENANCE.json)。
 
-## 固定基线
+## 来源与许可
 
-| 项目 | 版本 |
-|---|---|
-| Minecraft / Java | 1.20.1 / 17 |
-| Forge / ForgeGradle / Gradle | 47.4.23 / 6.0.54 / 8.8 |
-| 模组 ID / Java 包 | `technom` / `theflogat.technomancy` |
-| TC4R | `0.1.0-20721`，必需 |
-| GTCEu | `7.5.3`，可选运行时；编译 API 始终存在 |
-| Curios / TerraBlender | `5.14.1+1.20.1` / `1.20.1-3.0.1.10` |
+新代码与文档采用 [Apache-2.0](LICENSE)；MDK 原始许可保存在 `LICENSES/`。
 
-版本事实以 `gradle.properties` 为准。运行时元数据严格限定当前 TC4R/GTCEu 核对版本，不宣称自动支持其他版本。
-
-代理配置放在本机的 Gradle 用户配置中。项目不保存本机 JDK 路径或代理端口；网络环境确实需要镜像时可以传 `-PmavenCentralMirror=https://maven.aliyun.com/repository/public`，正常情况下使用默认仓库。
-
-新代码和文档采用 [Apache-2.0](LICENSE)；MDK 原始许可保存在 `LICENSES/`。旧代码、美术与第三方依赖的来源分别记录，详见 [NOTICE](NOTICE) 和源码基线文档。
+上游 Technomancy 由 Democretes、theflogat、Mordenkainen 及贡献者创作（<https://github.com/Mordenkainen/Technomancy>）；移植另参考了 Technomancy-2。旧代码、美术与第三方依赖的来源分别记录在 [NOTICE](NOTICE) 与源码基线文档中。TC4R 的 JAR/POM 由本地导入，既不提交 Git，也不打进本模组的成品。
