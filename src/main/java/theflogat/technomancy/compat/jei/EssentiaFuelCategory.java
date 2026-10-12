@@ -64,7 +64,7 @@ public final class EssentiaFuelCategory implements IRecipeCategory<EssentiaFuelR
      * square on one page, nothing more.</p>
      */
     private static final ResourceLocation UNKNOWN =
-            ResourceLocation.fromNamespaceAndPath("thaumcraft", "textures/aspects/_unknown.png");
+            new ResourceLocation("thaumcraft", "textures/aspects/_unknown.png");
 
     private final IDrawable icon;
 

@@ -19,7 +19,7 @@ public final class TechnomNetwork {
      */
     private static final String VERSION = "2";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "main"),
+            new ResourceLocation(Technomancy.MOD_ID, "main"),
             () -> VERSION, VERSION::equals, VERSION::equals);
 
     /** How far an effect packet reaches; wider than the render distance would be wasted. */

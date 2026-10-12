@@ -50,12 +50,12 @@ public final class RitualTomeContent {
 
     private RitualTomeContent() {}
 
-    public static final ResourceLocation BACK_TEXTURE = ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "textures/gui/tomebackritual.png");
-    public static final ResourceLocation BUTTONS_TEXTURE = ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "textures/gui/tomebuttonsritual.png");
-    public static final ResourceLocation NEXT_PREV = ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "textures/gui/nextprevious.png");
+    public static final ResourceLocation BACK_TEXTURE = new ResourceLocation(Technomancy.MOD_ID, "textures/gui/tomebackritual.png");
+    public static final ResourceLocation BUTTONS_TEXTURE = new ResourceLocation(Technomancy.MOD_ID, "textures/gui/tomebuttonsritual.png");
+    public static final ResourceLocation NEXT_PREV = new ResourceLocation(Technomancy.MOD_ID, "textures/gui/nextprevious.png");
 
     private static ResourceLocation gui(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "textures/gui/" + name);
+        return new ResourceLocation(Technomancy.MOD_ID, "textures/gui/" + name);
     }
 
     /** {@code technom.tome.page.} + the page's path, so the key scheme stays in one place. */

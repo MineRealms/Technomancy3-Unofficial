@@ -1,4 +1,117 @@
 plugins {
     id 'dev.kikugie.stonecutter'
 }
-stonecutter.active '1.20.1-forge'
+
+// The canonical source in `src/` is written in the 1.20.1 dialect (see the plan doc, section 6).
+stonecutter.active('1.20.1-forge')
+
+// Stonecutter's default processed extensions do not include plain `json`/`mcmeta`, so resource
+// replacements would silently do nothing. Reusing the json5 comment configuration registers them.
+stonecutter.handlers {
+    inherit('json5', 'json')
+    inherit('json5', 'mcmeta')
+}
+
+// The version test has to be computed INSIDE the `parameters {}` block.
+//
+// `stonecutter.parameters { }` is not a one-shot root configuration: the controller replays it once
+// per version project, with that project's `StonecutterBuildExtension` as the closure delegate. So
+// `current` there really is the node being configured. A value computed at the script's top level
+// instead runs once on the ROOT project, where `current` is the *active* version (pinned by
+// `stonecutter.active(...)`) - which silently pins every rule to the 1.20.1 direction.
+//
+// Inside `constants {}` / `replacements {}` the delegate is a `MapProperty` subclass that exposes
+// `get(String)`, so a bare `current` there is resolved by Groovy's map-like access as
+// `delegate.get("current")` and comes back as a `Provider`:
+//   No such property: parsed for class DefaultMapProperty$EntryProvider
+// Computing the flag one level up avoids that, and the value is captured as a plain local.
+//
+// `eval(version, condition)` is a plain boolean method from `VersionOperations`, so it sidesteps
+// the Kotlin-only `current.parsed >= '1.21'` form as well.
+stonecutter.parameters {
+    def neo = eval(current.version, '>=1.21')
+
+    constants {
+        put('forge', !neo)
+        put('neoforge', neo)
+    }
+
+    replacements {
+        // The `direction` flag is exactly what the Kotlin DSL's `string(current.parsed >= "1.21")`
+        // sets: true applies from -> to, false applies the reverse. The canonical source is 1.20.1,
+        // so on the 1.20.1 node every rule runs in reverse and finds nothing - a no-op, not a
+        // corruption.
+        //
+        // Order matters: the generic `net.minecraftforge.` rule at the bottom must not see a path a
+        // more specific rule already rewrote, or `net.minecraftforge.api.distmarker` would become
+        // `net.neoforged.neoforge.api.distmarker`.
+        string(neo) {
+            replace('net.minecraftforge.eventbus.api.', 'net.neoforged.bus.api.')
+        }
+        string(neo) {
+            replace('net.minecraftforge.api.distmarker.', 'net.neoforged.api.distmarker.')
+        }
+        string(neo) {
+            replace('net.minecraftforge.forgespi.', 'net.neoforged.neoforgespi.')
+        }
+        string(neo) {
+            replace('net.minecraftforge.fml.', 'net.neoforged.fml.')
+        }
+
+        // Class renames where the simple name changed too, so they must precede the generic rule.
+        string(neo) {
+            replace('net.minecraftforge.common.MinecraftForge', 'net.neoforged.neoforge.common.NeoForge')
+        }
+        string(neo) {
+            replace('net.minecraftforge.common.ForgeConfigSpec', 'net.neoforged.neoforge.common.ModConfigSpec')
+        }
+        string(neo) {
+            replace('net.minecraftforge.common.extensions.IForgeMenuType',
+                    'net.neoforged.neoforge.common.extensions.IMenuTypeExtension')
+        }
+        string(neo) {
+            replace('net.minecraftforge.registries.RegistryObject',
+                    'net.neoforged.neoforge.registries.DeferredHolder')
+        }
+        string(neo) {
+            replace('net.minecraftforge.fluids.ForgeFlowingFluid',
+                    'net.neoforged.neoforge.fluids.BaseFlowingFluid')
+        }
+        string(neo) {
+            replace('net.minecraftforge.event.entity.living.LivingHurtEvent',
+                    'net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent')
+        }
+        string(neo) {
+            replace('net.minecraftforge.client.event.RegisterGuiOverlaysEvent',
+                    'net.neoforged.neoforge.client.event.RegisterGuiLayersEvent')
+        }
+
+        // NeoForge 1.21.1 moved the capability API out of `common.capabilities` into a top-level
+        // `capabilities` package, and renamed `ForgeCapabilities` to `Capabilities`. The class
+        // rename has to precede the package move (both are expressed in 1.20.1 source terms).
+        // `Capability` itself has no successor - it was split into `BlockCapability` /
+        // `ItemCapability` / `EntityCapability` - so that one stays a structural error.
+        string(neo) {
+            replace('net.minecraftforge.common.capabilities.ForgeCapabilities',
+                    'net.neoforged.neoforge.capabilities.Capabilities')
+        }
+        string(neo) {
+            replace('net.minecraftforge.common.capabilities.', 'net.neoforged.neoforge.capabilities.')
+        }
+
+        // Catch-all for the remaining pure package moves.
+        string(neo) {
+            replace('net.minecraftforge.', 'net.neoforged.neoforge.')
+        }
+
+        // ---------------------------------------------------------------- vanilla drift
+        // `new ResourceLocation(ns, path)` was replaced by a named factory in 1.20.5. The second
+        // pair is the reverse rule: a `regex` replacement needs both directions spelled out.
+        regex(neo) {
+            replace(
+                    'new ResourceLocation\\(', 'ResourceLocation.fromNamespaceAndPath(',
+                    'ResourceLocation\\.fromNamespaceAndPath\\(', 'new ResourceLocation('
+            )
+        }
+    }
+}

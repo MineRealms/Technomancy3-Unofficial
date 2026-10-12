@@ -31,7 +31,7 @@ import theflogat.technomancy.compat.botania.BotaniaPresence;
 public final class TechnomJeiPlugin implements IModPlugin {
 
     private static final ResourceLocation UID =
-            ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "jei");
+            new ResourceLocation(Technomancy.MOD_ID, "jei");
 
     @Override
     public ResourceLocation getPluginUid() {

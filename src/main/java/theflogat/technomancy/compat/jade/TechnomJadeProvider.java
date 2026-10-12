@@ -43,7 +43,7 @@ public final class TechnomJadeProvider implements IBlockComponentProvider, IServ
     public static final TechnomJadeProvider INSTANCE = new TechnomJadeProvider();
 
     private static final ResourceLocation UID =
-            ResourceLocation.fromNamespaceAndPath(Technomancy.MOD_ID, "machine_data");
+            new ResourceLocation(Technomancy.MOD_ID, "machine_data");
 
     private static final String ENERGY = "energy";
     private static final String ENERGY_CAP = "energy_cap";
