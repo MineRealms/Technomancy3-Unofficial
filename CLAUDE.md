@@ -2,7 +2,7 @@
 
 这是独立的 Technomancy Forge 1.20.1 移植工程。**先读本文，再按“先读这些文件”顺序读**。不要把“能编译/测试通过”理解为玩法完成。
 
-## 当前进度（核对日期 2026-09-30）
+## 当前进度（核对日期 2026-10-01）
 
 - **S0（工程/构建/文档）**：完成。
 - **S1（TC4 精华闭环）**：完成（量子罐、源质发电机、能量凝聚器、S1-B 配方/研究）。
@@ -23,14 +23,14 @@
   - **生态转换器** `technom:biome_morpher`：公开 `TaintSpreadLogic.setSpecialBiomeColumn`，无需 Mixin；右键切换魔法森林/阴森/污染之地。
   - **融合焦点恢复“吸收节点→右键空地再造节点”**（潜行右键吸收、空地右键立起，节点只存在于世界或焦点之一，不会复制或丢失）。
   - 三台机器都有配方、研究（`FLUXLAMP`/`ELECTRICBELLOWS`/`BIOMEMORPHER`）与模型，均**未实机验证**；其中电动风箱与生态转换器的代码渲染器已于本轮补齐（电动风箱 5 盒 + 风箱袋动画、生态转换器 14 盒），稳定灯（`flux_lamp`）的渲染器此前已移植、本轮未动。
-- **S5**：部分完成。GameTest 已验证服务端 `/reload` 数据包重载；**Jade/JEI/KubeJS 三处联动已实现**（见 [COMPAT 第 7 节](docs/COMPAT.zh-CN.md)）：Jade 覆盖 15 个方块实体、JEI 一个源质燃料值类别 + 38 条用途页（走 JEI 内建 Information 类别）、KubeJS 只绑定 `Technom` 只读全局且默认不进运行时。专用服务器长期运行/多人/跨维度/死亡重生/守恒总验收仍未做。
+- **S5**：自动化部分完成，**功能实现已无遗留**（功能矩阵里没有一条“待迁移”，剩下的“未实现”全是明确范围外项）。GameTest 已验证服务端 `/reload` 数据包重载；**Jade/JEI/KubeJS 三处联动已实现**（见 [COMPAT 第 7 节](docs/COMPAT.zh-CN.md)）：Jade 覆盖 15 个方块实体、JEI 一个源质燃料值类别 + 38 条用途页（走 JEI 内建 Information 类别）、KubeJS 只绑定 `Technom` 只读全局且默认不进运行时。**九台耗能机器的 EU 档位改为逐台推导**（`compat/gtceu/EuRating`：取最低档位使其 1 安培付得起最贵的一 tick，且整包装得进每 tick 输入预算；制造器与融合器没有档位能同时满足，按规则退到 ZPM、需 2 安培），花卉发电机此前在 EU 上是死的（账本档位全 0 却建了输出端口）已修；`50_eu_ratings` 实机逐面核对 13 个方块（9 台消费者 + 3 台发电机 + 静态存在燃烧器）、`53_power_flow` 实测 GT 电网从发电机取电充进 HV 电池箱（0 → 16,640 EU）。**验收侧仍未做**：专用服务器长期运行、多人、跨维度/死亡重生、守恒总账、无 Botania 客户端。
 
 ## 最近一次全量验证（2026-10-01）
 
-- `build`：**JUnit 262 通过 / 0 失败**（34 个测试类）。第八轮新增 9 条（`LangGuardTest` 3 + `RitualTomeWrapTest` 6）。此前：第七轮 253/32，第五轮 252，第四轮 245/30，2026-09-29 时是 238/28。
+- `build`：**JUnit 267 通过 / 0 失败**（35 个测试类）。第九轮新增 5 条（`EuRatingTest`）。此前：第八轮 262/34（`LangGuardTest` 3 + `RitualTomeWrapTest` 6），第七轮 253/32，第五轮 252，第四轮 245/30，2026-09-29 时是 238/28。
 - `runGameTestServer`（默认运行时）：**107/107 通过**（97 + `technom_s3_treasure` 批次 8 条 + 第五轮 1 条 + 第六轮 `technom_code_drawn` 1 条；守卫日志：`40 loot tables present, 4 blocks opted out`、`10 energy machines expose their buffer`、`31 tool-requiring blocks are all mineable`、`14 code-drawn blocks all non-occluding`）。2026-09-29 的 95 个曾在默认 / `-PwithGtceu=true` / `-PwithBotania=false` 三种运行时各跑一遍；**第五、六、七、八轮只跑了默认运行时**。
 - `python tools/validate_technom_data.py`：**OK: no errors**（16 warning / 1 skip；本轮修复前是 45 errors）。
-- Rosetta 客户端探针（带 GTCEu + KubeJS）：**10/10 通过**（`probes/client/`）。其中 `10_`/`11_` 这一对是真正的渲染器检查：10 在**集成服务端**放置全部 44 个方块（旧版用 `mc.level.setBlock`，`ClientLevel` 根本不接受写入，所以此前从未通过），11 等 3 秒后确认客户端看到 44/44 方块、36 个方块实体、3 个已注册渲染器。两者通过 JVM 系统属性传递原点，因为测试世界是虚空、玩家会掉落，位置不能各自重算。`12_`/`14_` 从烘焙模型与顶点捕获取证（不依赖人眼），`40_`/`41_` 覆盖三处联动与 TC4R 的要素来源页。首轮 8/10 的两个失败都不是回归：`11_` 是世界同步竞态（`--attach` 重跑 44/44），`14_` 是探针自身的颜色常量写反。**第五轮没跑探针；第六轮跑了，并靠它抓到水晶粒子的 missingno；第八轮跑了，`40_` 现在也逐条核对 JEI 用途页（`usage pages JEI can find = 48/48`），同时修掉两个探针自身的缺陷（见第八轮那条）。**
+- Rosetta 客户端探针（带 GTCEu + KubeJS）：`probes/client/` 现有 **14 个探针**，最近一次**整套**通过是第八轮的 10/10；第九、十轮只各跑了需要的那几个（`50_eu_ratings`、`53_power_flow`、`52_jade_state`、`56_player_effects`），`10_`/`11_` 还原 `NoGravity` 的改动自第十轮起**未复验**（重跑会在玩家身边铺满全部 technom 方块，属破坏性操作）。其中 `10_`/`11_` 这一对是真正的渲染器检查：10 在**集成服务端**放置全部 44 个方块（旧版用 `mc.level.setBlock`，`ClientLevel` 根本不接受写入，所以此前从未通过），11 等 3 秒后确认客户端看到 44/44 方块、36 个方块实体、3 个已注册渲染器。两者通过 JVM 系统属性传递原点，因为测试世界是虚空、玩家会掉落，位置不能各自重算。`12_`/`14_` 从烘焙模型与顶点捕获取证（不依赖人眼），`40_`/`41_` 覆盖三处联动与 TC4R 的要素来源页。首轮 8/10 的两个失败都不是回归：`11_` 是世界同步竞态（`--attach` 重跑 44/44），`14_` 是探针自身的颜色常量写反。**第五轮没跑探针；第六轮跑了，并靠它抓到水晶粒子的 missingno；第八轮跑了，`40_` 现在也逐条核对 JEI 用途页（`usage pages JEI can find = 48/48`），同时修掉两个探针自身的缺陷（见第八轮那条）。**
 - 2026-09-29 至 2026-09-30 三轮上游对照审计共修复 27 处缺陷（含 24 个此前缺失的方块掉落表、21 个“要工具却无 mineable 标签”的方块，以及第四轮补上的宝物受击/摧毁副作用与顺带修掉的 2 处偏差），逐条记录在 [VALIDATION](docs/VALIDATION.zh-CN.md) 的对应小节。
 - 本轮（2026-09-30 第五轮，第四轮审计之后的渲染器轮）把上游**七台**用代码画的方块渲染器全部移植（`crystal`/`existence_burner`/`biome_morpher`/`electric_bellows`/`adv_decon_table`/`eldritch_consumer`/`node_dynamo`），接线邪术吞噬器的面板动画，并把水晶改为 `CrystalBlockEntity` + 代码渲染器、修正上游颜色截断 bug（用户拍板：用上游作者本意的颜色，使光/暗水晶可区分）。本轮只更新文档并跑了默认运行时的 `build` 与 `runGameTestServer`，**未跑 Rosetta 探针**，也未跑其它运行时。详见 [VALIDATION](docs/VALIDATION.zh-CN.md) 的「七台代码渲染器与吞噬器面板动画（2026-09-30 第五轮）」小节。
 - 第六轮（2026-09-30，用户实机报告 + 按用户要求跑 Rosetta 探针）修掉第五轮留下的两个**只在客户端可见**的缺陷：① 两台存在燃烧器漏了 `.noOcclusion()`，邻居朝向它的面被剔除、露出空壳模型的空洞（上游 `isOpaqueCube()` 为 false）；② 五颗水晶的 `particle` 指向 `technom:entity/blockcrystal`，那是渲染器直接绑定的模型表、不进方块图集，于是粒子是 missingno（上游 `BlockCrystal` 注册的是 `catalyst_0..4`）。新增三条守卫，且每条都先人为退掉修复、确认会失败再恢复。详见 [VALIDATION](docs/VALIDATION.zh-CN.md) 的「代码渲染方块的遮挡与水晶粒子（2026-09-30 第六轮）」小节。
@@ -49,10 +49,10 @@
 
 ## 下一步（按优先级）
 
-1. **S5 总验收（现在是唯一剩下的阶段）**：专用服务器长期运行、多人联机、跨维度/死亡重生、持久化往返、守恒总账、研究/配方可达性全链、无 Botania 客户端（`-PwithBotania=false runClient` 未跑）；服务端 `/reload` 已由 GameTest 验证。Jade/JEI/KubeJS 联动已实现并有探针覆盖，但**仍未被人在游戏里看过排版**。
+1. **S5 总验收（唯一剩下的阶段；功能实现已无遗留，见功能矩阵）**：专用服务器长期运行、多人联机、跨维度/死亡重生、持久化往返、守恒总账、研究/配方可达性全链、无 Botania 客户端（`-PwithBotania=false runClient` 未跑）；服务端 `/reload` 已由 GameTest 验证。Jade/JEI/KubeJS 联动已实现并有探针覆盖，但**仍未被人在游戏里看过排版**。EU 侧还剩两处只有代码审查依据：高档位（ZPM/IV）在真实 GT 网络里的路由与损耗判定未实测（`53_power_flow` 只走了 LV 32 V），九台消费者里只有凝聚器有收电 GameTest（要补的话 `CondenserGtceuChecks` 就是模板）。
 2. **人眼验收**：S4 三台机器的实机行为（尤其稳定灯对真实祭坛、风箱对真实炼金炉）、**本轮移植的七台代码渲染器**（重点：水晶的半透明与五色区分、电动风箱的风箱袋动画、邪术吞噬器的面板动画）、客户端几何/朝向、魔力流体与桶、Jade 提示行与 JEI 燃料页的排版。节点创建闪电与仪式光效已实现（数值/颜色有 JUnit 与 Rosetta 探针覆盖），但仍未被人眼确认过观感。
 3. 全部完成后：`build` + `runGameTestServer`（有/无 GTCEu/无 Botania）+ Rosetta 客户端探针，并更新 FEATURE_MATRIX 与 VALIDATION。**第五轮只更新了文档，并跑了默认运行时的 `build` 与 `runGameTestServer`；探针与其它运行时均未重跑，因此本项尚未完成。**
-4. 工程卫生：`main` 领先 `origin/main` 的提交需要推送；`s1x/assets`、`s2/coils`、`s2/machines`、`s2/nodes-wands` 四个分支已全部合并（0 ahead），但挂在另一个 worktree 上，不要删。
+4. 工程卫生：`main` 已与 `origin/main` 同步，并新增了 CI 工作流（`.github/workflows/build.yml`，`build`/`gametest` 需仓库变量 `TC4R_ARCHIVE_URL` 才会运行）；`s1x/assets`、`s2/coils`、`s2/machines`、`s2/nodes-wands` 四个分支已全部合并（0 ahead），但挂在另一个 worktree 上，不要删。
 
 ## 已确定的方向（不可随意改）
 
