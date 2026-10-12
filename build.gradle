@@ -23,7 +23,11 @@ def withKubejs = providers.gradleProperty('withKubejs').map { it.toBoolean() }.g
 def tc4Repository = file(providers.gradleProperty('tc4Repository')
         .getOrElse(rootProject.file('local-repo').absolutePath))
 
-sourceSets.main.resources { srcDir rootProject.file('src/generated/resources') }
+// Generated resources are per-node: a shared directory would let the two `runData` outputs
+// overwrite each other (plan risk R8).
+sourceSets.main.resources {
+    srcDir rootProject.file(isForge ? 'src/generated/resources' : 'src/generated/resources-1.21.1')
+}
 
 // Optional local workaround; the project never sets a machine-specific proxy.
 if (providers.gradleProperty('mavenCentralMirror').isPresent()) {
@@ -194,36 +198,6 @@ if (isForge) {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 
-    tasks.named('test', Test).configure {
-        useJUnitPlatform()
-        // Several guard tests read their inputs as paths relative to the repository root
-        // (`src/main/java/...`). The sources live at the root, one level above this node project, so
-        // pin the working directory to the root to preserve the single-version build's behaviour.
-        workingDir = rootProject.projectDir
-        testLogging { events 'failed'; exceptionFormat 'full' }
-    }
-
-    tasks.register('verifyLocalDependencies') {
-        group = 'verification'
-        description = 'Checks supplied TC4R artifacts against the recorded SHA-256 hashes.'
-        doLast {
-            def manifest = new groovy.json.JsonSlurper().parse(rootProject.file('local-repo/DEPENDENCIES.json'))
-            manifest.artifacts.each { artifact ->
-                def target = new File(tc4Repository, artifact.path)
-                if (!target.isFile()) {
-                    throw new GradleException("Missing ${target}. Run tools/bootstrap-local-deps.ps1; see local-repo/README.md.")
-                }
-                def digest = java.security.MessageDigest.getInstance('SHA-256').digest(target.bytes).encodeHex().toString()
-                if (digest != artifact.sha256) {
-                    throw new GradleException("TC4R checksum mismatch: ${target.name}. Keep the version and manifest in sync.")
-                }
-            }
-            logger.lifecycle("Verified ${manifest.artifacts.size()} TC4R artifacts in ${tc4Repository}")
-        }
-    }
-    tasks.named('compileJava').configure { dependsOn 'verifyLocalDependencies' }
-    tasks.named('check').configure { dependsOn 'verifyLocalDependencies' }
-
     tasks.named('processResources', ProcessResources).configure {
         def values = [minecraft_version_range: minecraft_version_range,
                 forge_version_range: forge_version_range, loader_version_range: loader_version_range,
@@ -258,9 +232,162 @@ if (isForge) {
         from([rootProject.file('LICENSE'), rootProject.file('NOTICE')]) { into 'META-INF' }
     }
 } else {
-    // ------------------------------------------------------- 1.21.1 / NeoForge (filled in at S1)
-    logger.lifecycle("Node ${sc.current.project} is not configured yet; see docs/MULTIVERSION-BUILD-PLAN.zh-CN.md S1.")
+    // ---------------------------------------------------------------- 1.21.1 / NeoForge
+    apply plugin: 'net.neoforged.moddev'
+
+    neoForge {
+        version = neo_version
+
+        parchment {
+            minecraftVersion = minecraft_version
+            mappingsVersion = parchment_mappings
+        }
+
+        runs {
+            configureEach {
+                gameDirectory = rootProject.file('run')
+                systemProperty 'forge.logging.console.level', 'info'
+            }
+            client {
+                client()
+                gameDirectory = rootProject.file('run-client-1.21.1')
+                if (project.hasProperty('quickPlay')) {
+                    programArgument '--quickPlaySingleplayer'
+                    programArgument project.property('quickPlay').toString()
+                }
+                // R9: the two nodes must not share a bridge port. 1.20.1 owns 48791.
+                systemProperty 'rosetta.remote.port', '48792'
+            }
+            server {
+                server()
+                gameDirectory = rootProject.file('run-server-1.21.1')
+                programArgument '--nogui'
+            }
+            gameTestServer {
+                // MDG's RunModel has no `gameTestServer()` helper; the type is set by name.
+                type = 'gameTestServer'
+                gameDirectory = rootProject.file('run-gametest-1.21.1')
+                // NeoForge renamed the Forge `forge.*` system properties to `neoforge.*`.
+                systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+            }
+            data {
+                data()
+                gameDirectory = rootProject.file('run-data-1.21.1')
+                programArgument '--mod'
+                programArgument mod_id
+                programArgument '--all'
+                programArgument '--output'
+                programArgument rootProject.file('src/generated/resources-1.21.1/').absolutePath
+                programArgument '--existing'
+                programArgument rootProject.file('src/main/resources/').absolutePath
+            }
+        }
+
+        mods {
+            technom {
+                sourceSet sourceSets.main
+            }
+        }
+
+        // Unlike legacyforge, the NeoForge extension does have `unitTest`: it wires the modding
+        // classpath and the mod's own test resources into the `test` source set for us.
+        unitTest {
+            enable()
+            testedMod = mods.technom
+        }
+    }
+
+    repositories {
+        maven {
+            name = 'LocalTC4R'
+            url = uri(tc4Repository)
+            content { includeGroup 'dev.tc4port' }
+        }
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.blamejared.com' }
+        maven { url = 'https://maven.theillusivec4.top' }
+        maven {
+            url = 'https://api.modrinth.com/maven'
+            content { includeGroup 'maven.modrinth' }
+        }
+        maven { url = 'https://maven.gtceu.com' }
+        maven { url = 'https://maven.latvian.dev/releases' }
+        maven { url = 'https://maven.architectury.dev' }
+        mavenCentral()
+    }
+
+    dependencies {
+        // Core ModDevGradle has no `mod*` configurations - those are a legacyforge addition. On
+        // 1.21.1 that is fine: NeoForge runs in official mappings, so nothing needs remapping and
+        // the ordinary configurations carry mods just as well.
+        implementation("dev.tc4port:thaumcraft-neoforge:${thaumcraft_version}") { transitive = false }
+        runtimeOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}") { transitive = false }
+        runtimeOnly("com.github.glitchfiend:TerraBlender-neoforge:${terrablender_version}") {
+            transitive = false
+        }
+
+        compileOnly("com.gregtechceu.gtceu:gtceu-1.21.1:${gtceu_version}") { transitive = false }
+        if (withGtceu) {
+            runtimeOnly("com.gregtechceu.gtceu:gtceu-1.21.1:${gtceu_version}") { transitive = false }
+        }
+
+        compileOnly("mezz.jei:jei-1.21.1-neoforge:${jei_version}")
+        runtimeOnly("mezz.jei:jei-1.21.1-neoforge:${jei_version}")
+        compileOnly("maven.modrinth:jade:${jade_version}") { transitive = false }
+        if (withJade) {
+            runtimeOnly("maven.modrinth:jade:${jade_version}") { transitive = false }
+        }
+        compileOnly("dev.latvian.mods:kubejs-neoforge:${kubejs_version}") { transitive = false }
+        if (withKubejs) {
+            runtimeOnly("dev.latvian.mods:kubejs-neoforge:${kubejs_version}") { transitive = false }
+        }
+        // Botania has no 1.21.1 build, so the optional Botania module is 1.20.1-only for now.
+
+        testImplementation(platform("org.junit:junit-bom:${junit_version}"))
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
 }
+
+// ---------------------------------------------------------------- shared by both nodes
+// These live outside the per-node branch because neither is toolchain-specific: the guard tests and
+// the TC4R integrity check apply to 1.20.1 and 1.21.1 alike.
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+    // Several guard tests read their inputs as paths relative to the repository root
+    // (`src/main/java/...`). The sources live at the root, one level above the node project, so
+    // pin the working directory to the root to preserve the single-version build's behaviour.
+    workingDir = rootProject.projectDir
+    testLogging { events 'failed'; exceptionFormat 'full' }
+}
+
+tasks.register('verifyLocalDependencies') {
+    group = 'verification'
+    description = 'Checks supplied TC4R artifacts against the recorded SHA-256 hashes.'
+    doLast {
+        // Each node has its own artifact set. `DEPENDENCIES.json` is the 1.20.1 manifest the
+        // existing bootstrap script and CI still reference, so it keeps its name; a node-qualified
+        // file takes precedence when one exists.
+        def nodeManifest = rootProject.file("local-repo/DEPENDENCIES.${sc.current.project}.json")
+        def manifestFile = nodeManifest.isFile() ? nodeManifest
+                : rootProject.file('local-repo/DEPENDENCIES.json')
+        def manifest = new groovy.json.JsonSlurper().parse(manifestFile)
+        manifest.artifacts.each { artifact ->
+            def target = new File(tc4Repository, artifact.path)
+            if (!target.isFile()) {
+                throw new GradleException("Missing ${target}. Run tools/bootstrap-local-deps.ps1; see local-repo/README.md.")
+            }
+            def digest = java.security.MessageDigest.getInstance('SHA-256').digest(target.bytes).encodeHex().toString()
+            if (digest != artifact.sha256) {
+                throw new GradleException("TC4R checksum mismatch: ${target.name}. Keep the version and manifest in sync.")
+            }
+        }
+        logger.lifecycle("Verified ${manifest.artifacts.size()} TC4R artifacts for ${sc.current.project} via ${manifestFile.name}")
+    }
+}
+tasks.named('compileJava').configure { dependsOn 'verifyLocalDependencies' }
+tasks.named('check').configure { dependsOn 'verifyLocalDependencies' }
 
 tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false

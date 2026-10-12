@@ -11,6 +11,7 @@ mcmodsrepo/
 local-repo/**
 !local-repo/README.md
 !local-repo/DEPENDENCIES.json
+!local-repo/DEPENDENCIES.*.json
 libs/
 
 .idea/
