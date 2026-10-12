@@ -363,6 +363,9 @@ if (isForge) {
     }
 }
 
+// Process test sources using the same target rules as production sources.
+stonecutter.tasks.configureSource(sourceSets.test)
+
 // ---------------------------------------------------------------- shared by both nodes
 // These live outside the per-node branch because neither is toolchain-specific: the guard tests and
 // the TC4R integrity check apply to 1.20.1 and 1.21.1 alike.
@@ -373,6 +376,10 @@ tasks.named('test', Test).configure {
     // (`src/main/java/...`). The sources live at the root, one level above the node project, so
     // pin the working directory to the root to preserve the single-version build's behaviour.
     workingDir = rootProject.projectDir
+    systemProperty 'technom.sourceRoot', (isForge ? rootProject.file('src/main/java')
+            : layout.buildDirectory.dir('generated/stonecutter/main/java').get().asFile).absolutePath
+    systemProperty 'technom.resourceRoot', layout.buildDirectory.dir('resources/main').get().asFile.absolutePath
+    systemProperty 'technom.loader', mod_loader
     testLogging { events 'failed'; exceptionFormat 'full' }
 }
 

@@ -152,8 +152,10 @@ class LangGuardTest {
 
     /** A source file, relative to the project directory the test task runs in. */
     private static String read(Path file) throws IOException {
-        assertTrue(Files.isRegularFile(file), file + " is not there; the test task's working"
-                + " directory is not the project directory");
-        return Files.readString(file, StandardCharsets.UTF_8);
+        Path relative = Path.of("src/main/java").relativize(file);
+        Path target = Path.of(System.getProperty("technom.sourceRoot", "src/main/java")).resolve(relative);
+        assertTrue(Files.isRegularFile(target), target + " is not there; the target source tree is missing");
+        // Stonecutter leaves the inactive branch in block comments; only active code requests keys.
+        return Files.readString(target, StandardCharsets.UTF_8).replaceAll("(?s)/\\*.*?\\*/", "");
     }
 }
