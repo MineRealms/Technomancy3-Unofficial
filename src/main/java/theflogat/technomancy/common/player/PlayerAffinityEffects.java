@@ -4,11 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 //? if forge {
-//? if forge {
 import net.minecraftforge.event.TickEvent;
-//?} else {
-/*import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-*///?}
 //?} else {
 /*import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 *///?}
@@ -34,20 +30,12 @@ public final class PlayerAffinityEffects {
     }
 
     //? if forge {
-    //? if forge {
     private static void onPlayerTick(TickEvent.PlayerTickEvent event) {
     //?} else {
     /*private static void onPlayerTick(PlayerTickEvent.Post event) {
     *///?}
-    //?} else {
-    /*private static void onPlayerTick(PlayerTickEvent.Post event) {
-    *///?}
-        //? if forge {
         //? if forge {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) {
-        //?} else {
-        /*if (!(event.getEntity() instanceof ServerPlayer player)) {
-        *///?}
         //?} else {
         /*if (!(event.getEntity() instanceof ServerPlayer player)) {
         *///?}
