@@ -18,6 +18,16 @@ import theflogat.technomancy.common.tiles.machines.FluxLampBlockEntity;
  */
 public class FluxLampBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<FluxLampBlock> CODEC = simpleCodec(FluxLampBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<FluxLampBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public FluxLampBlock(Properties properties) {
         super(properties);
     }

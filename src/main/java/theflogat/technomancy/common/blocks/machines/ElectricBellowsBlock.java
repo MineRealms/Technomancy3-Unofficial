@@ -23,6 +23,16 @@ import theflogat.technomancy.common.tiles.machines.ElectricBellowsBlockEntity;
  */
 public class ElectricBellowsBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<ElectricBellowsBlock> CODEC = simpleCodec(ElectricBellowsBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<ElectricBellowsBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public static final DirectionProperty FACING = DirectionProperty.create("facing");
 
     public ElectricBellowsBlock(Properties properties) {

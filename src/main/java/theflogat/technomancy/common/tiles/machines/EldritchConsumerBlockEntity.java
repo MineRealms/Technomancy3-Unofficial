@@ -29,8 +29,12 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.Technomancy;
 import theflogat.technomancy.common.energy.EnergyLimits;
 import theflogat.technomancy.common.energy.EnergyPorts;
@@ -468,23 +472,35 @@ public final class EldritchConsumerBlockEntity extends BlockEntity implements Es
 
     // ---- capabilities ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         energy.invalidate();
     }
+    //?}
 
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         if (tag.getInt(TAG_VERSION) != SCHEMA_VERSION) {
             return;
         }
@@ -499,8 +515,16 @@ public final class EldritchConsumerBlockEntity extends BlockEntity implements Es
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.putInt(TAG_VERSION, SCHEMA_VERSION);
         tag.put(TAG_ENERGY, energy.save());
         tag.put(TAG_ESSENTIA, store.save());
@@ -517,14 +541,22 @@ public final class EldritchConsumerBlockEntity extends BlockEntity implements Es
      * so the flag is what the renderer's {@code go} argument wants.
      */
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
         CompoundTag tag = new CompoundTag();
         tag.putBoolean(TAG_WORKING, working);
         return tag;
     }
 
     @Override
+    //? if forge {
     public void handleUpdateTag(CompoundTag tag) {
+    //?} else {
+    /*public void handleUpdateTag(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
         working = tag.getBoolean(TAG_WORKING);
     }
 
@@ -535,10 +567,18 @@ public final class EldritchConsumerBlockEntity extends BlockEntity implements Es
 
     /** Not the inherited {@code load}: the update tag is a fragment, not a full save. */
     @Override
+    //? if forge {
     public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet) {
+    //?} else {
+    /*public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
         CompoundTag tag = packet.getTag();
         if (tag != null) {
+            //? if forge {
             handleUpdateTag(tag);
+            //?} else {
+            /*handleUpdateTag(tag, registries);
+            *///?}
         }
     }
 }

@@ -64,6 +64,11 @@ public final class QuantumJarBlockEntity extends BlockEntity
     private final EssentiaStore store = new EssentiaStore(EssentiaLimits.jar(CAPACITY));
     private int ticks;
 
+    /** Jar capacity exposed by TC4R 20736; also available on the legacy implementation. */
+    public int capacity() {
+        return CAPACITY;
+    }
+
     public QuantumJarBlockEntity(BlockPos pos, BlockState state) {
         super(TechnomBlockEntities.QUANTUM_JAR.get(), pos, state);
         store.setListener(this::changedAndSync);
@@ -333,26 +338,62 @@ public final class QuantumJarBlockEntity extends BlockEntity
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         if (store.load(tag.getCompound("Essentia"))) {
             Technomancy.LOGGER.warn("Quantum jar at {} could not restore its contents verbatim", worldPosition);
         }
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put("Essentia", store.save());
     }
 
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         return saveWithoutMetadata();
+        //?} else {
+        /*return saveWithoutMetadata(registries);
+        *///?}
     }
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
     }
+    //? if neoforge {
+    /*@Override
+    protected void collectImplicitComponents(net.minecraft.core.component.DataComponentMap.Builder components) {
+        super.collectImplicitComponents(components);
+        CompoundTag contents = new CompoundTag();
+        contents.put("Essentia", store.save());
+        BlockEntity.addEntityType(contents, getType());
+        components.set(net.minecraft.core.component.DataComponents.BLOCK_ENTITY_DATA,
+                net.minecraft.world.item.component.CustomData.of(contents));
+    }
+    *///?}
+
 }

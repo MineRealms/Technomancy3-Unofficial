@@ -22,6 +22,16 @@ import theflogat.technomancy.common.tiles.air.FakeAirLightBlockEntity;
  */
 public class FakeAirLightBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<FakeAirLightBlock> CODEC = simpleCodec(FakeAirLightBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<FakeAirLightBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public FakeAirLightBlock(Properties properties) {
         super(properties);
     }

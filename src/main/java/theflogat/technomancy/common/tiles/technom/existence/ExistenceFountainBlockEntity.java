@@ -84,14 +84,30 @@ public final class ExistenceFountainBlockEntity extends BlockEntity implements I
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.putInt(TAG_POWER, power);
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         power = tag.getInt(TAG_POWER);
     }
 }

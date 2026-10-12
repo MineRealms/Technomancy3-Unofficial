@@ -35,6 +35,16 @@ import theflogat.technomancy.common.tiles.machines.AdvDeconTableBlockEntity;
  */
 public class AdvDeconTableBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<AdvDeconTableBlock> CODEC = simpleCodec(AdvDeconTableBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<AdvDeconTableBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     /** The original model is a low table; the collision box matches the drawn shape. */
     private static final VoxelShape SHAPE = Shapes.box(0.0, 0.0, 0.0, 1.0, 0.75, 1.0);
 
@@ -76,7 +86,28 @@ public class AdvDeconTableBlock extends BaseEntityBlock {
         }
     }
 
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof AdvDeconTableBlockEntity table)) {

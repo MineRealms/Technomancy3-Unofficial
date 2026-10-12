@@ -17,6 +17,16 @@ import theflogat.technomancy.common.tiles.technom.existence.ExistenceFountainBlo
 /** {@code BlockExistenceFountain}: produces Existence and trails enchantment particles. */
 public class ExistenceFountainBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<ExistenceFountainBlock> CODEC = simpleCodec(ExistenceFountainBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<ExistenceFountainBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public ExistenceFountainBlock(Properties properties) {
         super(properties);
     }

@@ -53,6 +53,16 @@ import theflogat.technomancy.common.wands.TechnomWrench;
  */
 public class NodeFabricatorBlock extends BaseEntityBlock implements WandInteractionTarget {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<NodeFabricatorBlock> CODEC = simpleCodec(NodeFabricatorBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<NodeFabricatorBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     /** Horizontal only: the slab is built across it and the node sits along it. */
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
@@ -124,7 +134,28 @@ public class NodeFabricatorBlock extends BaseEntityBlock implements WandInteract
         return held <= 0 ? 0 : held * 14 / NodeFabricatorBlockEntity.ESSENTIA_CAPACITY + 1;
     }
 
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof NodeFabricatorBlockEntity machine)) {
@@ -190,7 +221,11 @@ public class NodeFabricatorBlock extends BaseEntityBlock implements WandInteract
 
     /** Breaking the controller takes its shells with it and hands back the loose parts. */
     @Override
+    //? if forge {
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    //?} else {
+    /*public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    *///?}
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof NodeFabricatorBlockEntity machine) {
             machine.removeShells(level);
             double x = pos.getX() + 0.5;
@@ -204,11 +239,19 @@ public class NodeFabricatorBlock extends BaseEntityBlock implements WandInteract
                 Containers.dropItemStack(level, x, y, z, programming);
             }
         }
+        //? if forge {
         super.playerWillDestroy(level, pos, state, player);
+        //?} else {
+        /*return super.playerWillDestroy(level, pos, state, player);
+        *///?}
     }
 
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable BlockGetter level, List<Component> lines, TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    *///?}
         lines.add(Component.translatable("block.technom.node_fabricator.structure",
                 NodeFabricatorBlockEntity.PARTNER_DISTANCE).withStyle(ChatFormatting.GRAY));
         lines.add(Component.translatable("block.technom.node_fabricator.work",

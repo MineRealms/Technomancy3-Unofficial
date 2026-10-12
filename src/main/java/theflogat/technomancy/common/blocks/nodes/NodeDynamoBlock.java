@@ -51,6 +51,16 @@ import theflogat.technomancy.common.wands.TechnomWrench;
  */
 public class NodeDynamoBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<NodeDynamoBlock> CODEC = simpleCodec(NodeDynamoBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<NodeDynamoBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
     public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
@@ -126,7 +136,28 @@ public class NodeDynamoBlock extends BaseEntityBlock {
         return stored <= 0 ? 0 : (int) (stored * 14 / NodeDynamoBlockEntity.ENERGY_CAPACITY) + 1;
     }
 
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof NodeDynamoBlockEntity dynamo)) {
@@ -183,7 +214,11 @@ public class NodeDynamoBlock extends BaseEntityBlock {
 
     /** Hands back the gem and the programming item; buffered Vis is lost, as before. */
     @Override
+    //? if forge {
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    //?} else {
+    /*public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    *///?}
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof NodeDynamoBlockEntity dynamo) {
             double x = pos.getX() + 0.5;
             double y = pos.getY() + 0.5;
@@ -196,11 +231,19 @@ public class NodeDynamoBlock extends BaseEntityBlock {
                 Containers.dropItemStack(level, x, y, z, programming);
             }
         }
+        //? if forge {
         super.playerWillDestroy(level, pos, state, player);
+        //?} else {
+        /*return super.playerWillDestroy(level, pos, state, player);
+        *///?}
     }
 
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable BlockGetter level, List<Component> lines, TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    *///?}
         lines.add(Component.translatable("block.technom.node_dynamo.rate",
                 NodeDynamoBlockEntity.BASE_RATE, NodeDynamoBlockEntity.RANGE).withStyle(ChatFormatting.GRAY));
         lines.add(Component.translatable("block.technom.node_dynamo.per_vis",

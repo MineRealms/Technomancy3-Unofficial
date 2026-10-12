@@ -85,7 +85,11 @@ public final class ExistenceUserBlockEntity extends BlockEntity implements IExis
                 BlockPos cropPos = pos.offset(dx, 2, dz);
                 BlockState crop = level.getBlockState(cropPos);
                 if (crop.getBlock() instanceof BonemealableBlock growable
+                        //? if forge {
                         && growable.isValidBonemealTarget(level, cropPos, crop, false)
+                        //?} else {
+                        /*&& growable.isValidBonemealTarget(level, cropPos, crop)
+                        *///?}
                         && power >= CROP_COST) {
                     if (growable.isBonemealSuccess(level, level.random, cropPos, crop)) {
                         growable.performBonemeal(level, level.random, cropPos, crop);
@@ -103,7 +107,11 @@ public final class ExistenceUserBlockEntity extends BlockEntity implements IExis
                 BlockPos cropPos = pos.offset(dx, 0, dz);
                 BlockState crop = level.getBlockState(cropPos);
                 if (!(crop.getBlock() instanceof BonemealableBlock growable)
+                        //? if forge {
                         || growable.isValidBonemealTarget(level, cropPos, crop, false)) {
+                        //?} else {
+                        /*|| growable.isValidBonemealTarget(level, cropPos, crop)) {
+                        *///?}
                     continue;
                 }
                 if (power < HARVEST_COST) {
@@ -185,15 +193,31 @@ public final class ExistenceUserBlockEntity extends BlockEntity implements IExis
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.putInt(TAG_POWER, power);
         redstone.save(tag);
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         power = tag.getInt(TAG_POWER);
         redstone.load(tag);
     }

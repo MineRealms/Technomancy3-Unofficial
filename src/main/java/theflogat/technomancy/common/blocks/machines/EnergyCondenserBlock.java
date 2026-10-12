@@ -44,6 +44,16 @@ import theflogat.technomancy.common.tiles.machines.EnergyCondenserBlockEntity;
  */
 public class EnergyCondenserBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<EnergyCondenserBlock> CODEC = simpleCodec(EnergyCondenserBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<EnergyCondenserBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     public static final BooleanProperty OUT_DOWN = BooleanProperty.create("out_down");
@@ -141,7 +151,28 @@ public class EnergyCondenserBlock extends BaseEntityBlock {
      * the sneaking path and then dereferenced it unconditionally two lines later, so
      * right-clicking a condenser whose block entity had gone missing threw (defect A-12).</p>
      */
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof EnergyCondenserBlockEntity condenser)) {

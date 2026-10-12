@@ -16,6 +16,18 @@ import theflogat.technomancy.common.tiles.technom.existence.ExistenceTier;
 /** {@code BlockExistencePylon}: one block per tier. */
 public class ExistencePylonBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<ExistencePylonBlock> CODEC = com.mojang.serialization.codecs.RecordCodecBuilder.mapCodec(instance -> instance.group(
+            com.mojang.serialization.Codec.STRING.xmap(ExistenceTier::valueOf, ExistenceTier::name).fieldOf("tier").forGetter((ExistencePylonBlock block) -> block.tier),
+            propertiesCodec()).apply(instance, ExistencePylonBlock::new));
+
+    @Override
+    protected com.mojang.serialization.MapCodec<ExistencePylonBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     private final ExistenceTier tier;
 
     public ExistencePylonBlock(ExistenceTier tier, Properties properties) {

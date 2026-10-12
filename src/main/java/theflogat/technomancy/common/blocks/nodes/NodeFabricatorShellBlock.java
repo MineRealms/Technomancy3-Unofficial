@@ -28,6 +28,16 @@ import theflogat.technomancy.common.tiles.nodes.NodeFabricatorShellBlockEntity;
  */
 public class NodeFabricatorShellBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<NodeFabricatorShellBlock> CODEC = simpleCodec(NodeFabricatorShellBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<NodeFabricatorShellBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public NodeFabricatorShellBlock(Properties properties) {
         super(properties);
     }
@@ -71,14 +81,22 @@ public class NodeFabricatorShellBlock extends BaseEntityBlock {
      * leaving a machine with a hole in its slab that silently stops working.
      */
     @Override
+    //? if forge {
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    //?} else {
+    /*public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    *///?}
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof NodeFabricatorShellBlockEntity shell) {
             BlockPos host = shell.host();
             if (host != null && level.isLoaded(host)) {
                 level.destroyBlock(host, true, player);
             }
         }
+        //? if forge {
         super.playerWillDestroy(level, pos, state, player);
+        //?} else {
+        /*return super.playerWillDestroy(level, pos, state, player);
+        *///?}
     }
 
     /**

@@ -23,8 +23,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.Technomancy;
 import theflogat.technomancy.common.blocks.dynamo.EssentiaDynamoBlock;
 import theflogat.technomancy.common.energy.EnergyLimits;
@@ -512,17 +516,21 @@ public final class EssentiaDynamoBlockEntity extends BlockEntity implements Esse
 
     // ---- energy capabilities ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         energy.invalidate();
     }
+    //?}
 
     // ---- working state and sync ----
 
@@ -584,8 +592,16 @@ public final class EssentiaDynamoBlockEntity extends BlockEntity implements Esse
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         if (!tag.contains(TAG_VERSION, Tag.TAG_INT)) {
             return;
         }
@@ -606,8 +622,16 @@ public final class EssentiaDynamoBlockEntity extends BlockEntity implements Esse
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.putInt(TAG_VERSION, SCHEMA_VERSION);
         tag.put(TAG_ENERGY, energy.save());
         tag.put(TAG_ESSENTIA, store.save());
@@ -617,8 +641,16 @@ public final class EssentiaDynamoBlockEntity extends BlockEntity implements Esse
     }
 
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         return saveWithoutMetadata();
+        //?} else {
+        /*return saveWithoutMetadata(registries);
+        *///?}
     }
 
     @Override

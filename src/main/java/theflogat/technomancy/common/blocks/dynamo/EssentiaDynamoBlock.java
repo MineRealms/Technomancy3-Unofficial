@@ -57,6 +57,16 @@ import theflogat.technomancy.common.tiles.dynamo.EssentiaDynamoBlockEntity;
  */
 public class EssentiaDynamoBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<EssentiaDynamoBlock> CODEC = simpleCodec(EssentiaDynamoBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<EssentiaDynamoBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     /** The single face energy leaves through. Was a {@code byte} on the block entity. */
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
     /**
@@ -166,7 +176,28 @@ public class EssentiaDynamoBlock extends BaseEntityBlock {
     /**
      * Every branch mutates server-side only; the client just reports success so the arm swings.
      */
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof EssentiaDynamoBlockEntity dynamo)) {
@@ -251,7 +282,11 @@ public class EssentiaDynamoBlock extends BaseEntityBlock {
      * a plain loss. The essentia in the buffer is not returned, exactly as before.</p>
      */
     @Override
+    //? if forge {
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    //?} else {
+    /*public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    *///?}
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof EssentiaDynamoBlockEntity dynamo) {
             double x = pos.getX() + 0.5;
             double y = pos.getY() + 0.5;
@@ -264,7 +299,11 @@ public class EssentiaDynamoBlock extends BaseEntityBlock {
                 Containers.dropItemStack(level, x, y, z, programming);
             }
         }
+        //? if forge {
         super.playerWillDestroy(level, pos, state, player);
+        //?} else {
+        /*return super.playerWillDestroy(level, pos, state, player);
+        *///?}
     }
 
     /**
@@ -274,8 +313,12 @@ public class EssentiaDynamoBlock extends BaseEntityBlock {
      * against an actual 320 (defect A-5).</p>
      */
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable BlockGetter level, List<Component> lines,
             TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    *///?}
         lines.add(Component.translatable("block.technom.essentia_dynamo.rate",
                 EssentiaDynamoBlockEntity.BASE_RATE, EssentiaDynamoBlockEntity.MAX_OUTPUT)
                 .withStyle(ChatFormatting.GRAY));

@@ -17,9 +17,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import net.minecraft.world.MenuProvider;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
@@ -73,9 +79,17 @@ public abstract class ProcessorBlockEntity extends BlockEntity implements MenuPr
 
     private final ProcessorCycle cycle = new ProcessorCycle();
 
+    //? if forge {
     private final LazyOptional<IItemHandler> internalView = LazyOptional.of(() -> items);
     private final LazyOptional<IItemHandler> faceView =
             LazyOptional.of(() -> new SidedSlotView(items, SLOT_INPUT, SLOT_OUTPUT));
+    //?} else {
+    /*private final IItemHandler sidedItems = new SidedSlotView(items, SLOT_INPUT, SLOT_OUTPUT);
+
+    public IItemHandler itemView(@Nullable net.minecraft.core.Direction side) {
+        return side == null ? items : sidedItems;
+    }
+    *///?}
 
     private final ContainerData containerData = new ContainerData() {
         @Override
@@ -201,6 +215,7 @@ public abstract class ProcessorBlockEntity extends BlockEntity implements MenuPr
 
     // ---- capabilities ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) {
@@ -208,27 +223,54 @@ public abstract class ProcessorBlockEntity extends BlockEntity implements MenuPr
         }
         return super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         internalView.invalidate();
         faceView.invalidate();
     }
+    //?}
 
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
+        //? if forge {
         items.deserializeNBT(tag.getCompound(TAG_ITEMS));
+        //?} else {
+        /*items.deserializeNBT(registries, tag.getCompound(TAG_ITEMS));
+        *///?}
         cycle.load(tag.getCompound(TAG_CYCLE));
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
+        //? if forge {
         tag.put(TAG_ITEMS, items.serializeNBT());
+        //?} else {
+        /*tag.put(TAG_ITEMS, items.serializeNBT(registries));
+        *///?}
         tag.put(TAG_CYCLE, cycle.save());
     }
 }

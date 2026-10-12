@@ -19,9 +19,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import theflogat.technomancy.Technomancy;
@@ -71,9 +77,17 @@ public final class AdvDeconTableBlockEntity extends BlockEntity {
         }
     };
 
+    //? if forge {
     private final LazyOptional<IItemHandler> internalView = LazyOptional.of(() -> items);
     private final LazyOptional<IItemHandler> faceView =
             LazyOptional.of(() -> new SidedSlotView(items, SLOT, SLOT));
+    //?} else {
+    /*private final IItemHandler sidedItems = new SidedSlotView(items, SLOT, SLOT);
+
+    public IItemHandler itemView(@Nullable net.minecraft.core.Direction side) {
+        return side == null ? items : sidedItems;
+    }
+    *///?}
 
     @Nullable
     private UUID owner;
@@ -224,6 +238,7 @@ public final class AdvDeconTableBlockEntity extends BlockEntity {
 
     // ---- capabilities ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable net.minecraft.core.Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) {
@@ -231,23 +246,38 @@ public final class AdvDeconTableBlockEntity extends BlockEntity {
         }
         return super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         internalView.invalidate();
         faceView.invalidate();
     }
+    //?}
 
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         if (tag.getInt(TAG_VERSION) != SCHEMA_VERSION) {
             return;
         }
+        //? if forge {
         items.deserializeNBT(tag.getCompound(TAG_ITEMS));
+        //?} else {
+        /*items.deserializeNBT(registries, tag.getCompound(TAG_ITEMS));
+        *///?}
         owner = tag.hasUUID(TAG_OWNER) ? tag.getUUID(TAG_OWNER) : null;
         ownerName = tag.getString(TAG_OWNER_NAME);
         pending = tag.contains(TAG_PENDING, Tag.TAG_STRING)
@@ -258,10 +288,22 @@ public final class AdvDeconTableBlockEntity extends BlockEntity {
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.putInt(TAG_VERSION, SCHEMA_VERSION);
+        //? if forge {
         tag.put(TAG_ITEMS, items.serializeNBT());
+        //?} else {
+        /*tag.put(TAG_ITEMS, items.serializeNBT(registries));
+        *///?}
         if (owner != null) {
             tag.putUUID(TAG_OWNER, owner);
         }

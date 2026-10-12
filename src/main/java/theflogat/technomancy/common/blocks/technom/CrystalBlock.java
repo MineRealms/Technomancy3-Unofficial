@@ -34,6 +34,18 @@ import theflogat.technomancy.common.tiles.technom.CrystalBlockEntity;
  */
 public class CrystalBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<CrystalBlock> CODEC = com.mojang.serialization.codecs.RecordCodecBuilder.mapCodec(instance -> instance.group(
+            com.mojang.serialization.Codec.STRING.xmap(Ritual.Type::valueOf, Ritual.Type::name).fieldOf("type").forGetter((CrystalBlock block) -> block.type),
+            propertiesCodec()).apply(instance, CrystalBlock::new));
+
+    @Override
+    protected com.mojang.serialization.MapCodec<CrystalBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     private static final VoxelShape STAGE_0 = Shapes.box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
     private static final VoxelShape STAGE_1 = Shapes.box(0.25, 0.0, 0.25, 0.75, 1.0, 0.75);
     private static final VoxelShape STAGE_2 = Shapes.box(0.375, 0.0, 0.375, 0.625, 1.0, 0.625);

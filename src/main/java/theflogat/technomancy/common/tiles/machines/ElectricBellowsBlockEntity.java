@@ -14,8 +14,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.common.blocks.machines.ElectricBellowsBlock;
 import theflogat.technomancy.common.energy.EnergyLimits;
 import theflogat.technomancy.common.energy.EnergyPorts;
@@ -141,7 +145,11 @@ public final class ElectricBellowsBlockEntity extends BlockEntity implements Ene
         }
         smelting.setItem(0, input);
         boolean found = level.getRecipeManager()
+                //? if forge {
                 .getRecipeFor(RecipeType.SMELTING, smelting, level).isPresent();
+                //?} else {
+                /*.getRecipeFor(RecipeType.SMELTING, new net.minecraft.world.item.crafting.SingleRecipeInput(input), level).isPresent();
+                *///?}
         smelting.setItem(0, ItemStack.EMPTY);
         return found;
     }
@@ -159,28 +167,48 @@ public final class ElectricBellowsBlockEntity extends BlockEntity implements Ene
      * {@code BlockEntity} only exposes capabilities gathered from a registered provider field, and
      * {@link MachineEnergy} is not one - so it could never be charged and never stoked anything.
      */
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         energy.invalidate();
     }
+    //?}
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put(TAG_ENERGY, energy.save());
         tag.putInt(TAG_BOOST, boost);
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         energy.load(tag.getCompound(TAG_ENERGY));
         boost = tag.getInt(TAG_BOOST);
     }

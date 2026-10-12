@@ -9,7 +9,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import theflogat.technomancy.common.coils.CoilItemMove;
@@ -69,7 +68,7 @@ public final class ItemCoilBlockEntity extends CoilBlockEntity {
         if (be == null || be instanceof CoilBlockEntity) {
             return null;
         }
-        return be.getCapability(ForgeCapabilities.ITEM_HANDLER, face).resolve().orElse(null);
+        return theflogat.technomancy.common.platform.CapabilityAccess.items(be, face);
     }
 
     @Override
@@ -133,26 +132,66 @@ public final class ItemCoilBlockEntity extends CoilBlockEntity {
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
+        //? if forge {
         readClientData(tag);
+        //?} else {
+        /*readClientData(tag, registries);
+        *///?}
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
+        //? if forge {
         writeClientData(tag);
+        //?} else {
+        /*writeClientData(tag, registries);
+        *///?}
     }
 
     @Override
+    //? if forge {
     protected void writeClientData(CompoundTag tag) {
+    //?} else {
+    /*protected void writeClientData(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
         if (!filter.isEmpty()) {
+            //? if forge {
             tag.put(TAG_FILTER, filter.save(new CompoundTag()));
+            //?} else {
+            /*tag.put(TAG_FILTER, filter.save(registries));
+            *///?}
         }
     }
 
     @Override
+    //? if forge {
     protected void readClientData(CompoundTag tag) {
+    //?} else {
+    /*protected void readClientData(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         filter = tag.contains(TAG_FILTER) ? ItemStack.of(tag.getCompound(TAG_FILTER)) : ItemStack.EMPTY;
+        //?} else {
+        /*filter = tag.contains(TAG_FILTER) ? ItemStack.parseOptional(registries, tag.getCompound(TAG_FILTER)) : ItemStack.EMPTY;
+        *///?}
     }
 }

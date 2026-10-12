@@ -16,9 +16,15 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
@@ -81,7 +87,13 @@ public final class FluxLampBlockEntity extends BlockEntity implements EssentiaTr
             syncTank();
         }
     };
+    //? if forge {
     private final LazyOptional<IFluidHandler> fluidView = LazyOptional.of(() -> tank);
+    //?} else {
+    /*public IFluidHandler fluidView() {
+        return tank;
+    }
+    *///?}
 
     @Nullable
     private BlockPos matrix;
@@ -309,6 +321,7 @@ public final class FluxLampBlockEntity extends BlockEntity implements EssentiaTr
 
     // ---- capabilities and storage ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.FLUID_HANDLER) {
@@ -316,18 +329,33 @@ public final class FluxLampBlockEntity extends BlockEntity implements EssentiaTr
         }
         return super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         fluidView.invalidate();
     }
+    //?}
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put(TAG_ESSENTIA, store.save());
+        //? if forge {
         tag.put(TAG_TANK, tank.writeToNBT(new CompoundTag()));
+        //?} else {
+        /*tag.put(TAG_TANK, tank.writeToNBT(registries, new CompoundTag()));
+        *///?}
         tag.putInt(TAG_COUNT, count);
         tag.putBoolean(TAG_STABILISE, stabilise);
         tag.putBoolean(TAG_PLACED, placed);
@@ -337,10 +365,22 @@ public final class FluxLampBlockEntity extends BlockEntity implements EssentiaTr
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         store.load(tag.getCompound(TAG_ESSENTIA));
+        //? if forge {
         tank.readFromNBT(tag.getCompound(TAG_TANK));
+        //?} else {
+        /*tank.readFromNBT(registries, tag.getCompound(TAG_TANK));
+        *///?}
         count = tag.getInt(TAG_COUNT);
         stabilise = tag.getBoolean(TAG_STABILISE);
         placed = tag.getBoolean(TAG_PLACED);
@@ -354,8 +394,16 @@ public final class FluxLampBlockEntity extends BlockEntity implements EssentiaTr
 
     /** The renderer reads the fill and the placement flag, so both ride the update packet. */
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         return saveWithoutMetadata();
+        //?} else {
+        /*return saveWithoutMetadata(registries);
+        *///?}
     }
 
     @Override

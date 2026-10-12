@@ -152,8 +152,16 @@ public final class CatalystBlockEntity extends BlockEntity {
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         remCount = tag.getInt(TAG_REM_COUNT);
         handlerId = tag.contains(TAG_RUNNING) ? tag.getInt(TAG_RUNNING) : -1;
         owner = tag.hasUUID(TAG_OWNER) ? tag.getUUID(TAG_OWNER) : null;
@@ -161,8 +169,16 @@ public final class CatalystBlockEntity extends BlockEntity {
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.putInt(TAG_REM_COUNT, remCount);
         tag.putInt(TAG_RUNNING, handlerId);
         if (owner != null) {

@@ -18,8 +18,12 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.common.registry.TechnomBlockEntities;
 
 /**
@@ -57,6 +61,9 @@ public final class NodeFabricatorShellBlockEntity extends BlockEntity implements
         if (!immutable.equals(host)) {
             host = immutable;
             setChanged();
+            //? if neoforge {
+            /*invalidateCapabilities();
+            *///?}
             if (level != null && !level.isClientSide) {
                 level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 2);
             }
@@ -89,6 +96,7 @@ public final class NodeFabricatorShellBlockEntity extends BlockEntity implements
 
     // ---- energy: the host's own capability, never a copy ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         NodeFabricatorBlockEntity machine = controller();
@@ -100,6 +108,7 @@ public final class NodeFabricatorShellBlockEntity extends BlockEntity implements
         }
         return super.getCapability(cap, side);
     }
+    //?}
 
     // ---- essentia: forwarded with this shell's own face rules ----
 
@@ -198,22 +207,55 @@ public final class NodeFabricatorShellBlockEntity extends BlockEntity implements
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
+        //? if forge {
         host = tag.contains(TAG_HOST, Tag.TAG_COMPOUND) ? NbtUtils.readBlockPos(tag.getCompound(TAG_HOST)) : null;
+        //?} else {
+        /*if (tag.contains(TAG_HOST, Tag.TAG_COMPOUND)) {
+            CompoundTag legacy = tag.getCompound(TAG_HOST);
+            host = new BlockPos(legacy.getInt("X"), legacy.getInt("Y"), legacy.getInt("Z"));
+        } else {
+            host = NbtUtils.readBlockPos(tag, TAG_HOST).orElse(null);
+        }
+        *///?}
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         if (host != null) {
             tag.put(TAG_HOST, NbtUtils.writeBlockPos(host));
         }
     }
 
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         return saveWithoutMetadata();
+        //?} else {
+        /*return saveWithoutMetadata(registries);
+        *///?}
     }
 
     @Override

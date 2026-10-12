@@ -202,8 +202,16 @@ public final class TcProcessorBlockEntity extends ProcessorBlockEntity
     // ---- persistence ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         if (store.load(tag.getCompound(TAG_ESSENTIA))) {
             Technomancy.LOGGER.warn("Processor at {} could not restore its fuel verbatim", worldPosition);
         }
@@ -212,8 +220,16 @@ public final class TcProcessorBlockEntity extends ProcessorBlockEntity
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put(TAG_ESSENTIA, store.save());
     }
 }

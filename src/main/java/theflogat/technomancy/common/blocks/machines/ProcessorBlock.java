@@ -15,7 +15,9 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
+//? if forge {
 import net.minecraftforge.network.NetworkHooks;
+//?}
 import net.minecraft.server.level.ServerPlayer;
 import theflogat.technomancy.common.tiles.machines.ProcessorBlockEntity;
 
@@ -51,14 +53,39 @@ public abstract class ProcessorBlock extends BaseEntityBlock {
         return RenderShape.MODEL;
     }
 
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof ProcessorBlockEntity processor)) {
             return InteractionResult.PASS;
         }
         if (player instanceof ServerPlayer server) {
+            //? if forge {
             NetworkHooks.openScreen(server, processor, pos);
+            //?} else {
+            /*server.openMenu(processor, pos);
+            *///?}
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }

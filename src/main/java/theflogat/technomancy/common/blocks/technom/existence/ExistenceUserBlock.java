@@ -23,6 +23,18 @@ import theflogat.technomancy.common.tiles.technom.existence.ExistenceUserBlockEn
 /** {@code BlockExistenceUser}: one block per action. */
 public class ExistenceUserBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<ExistenceUserBlock> CODEC = com.mojang.serialization.codecs.RecordCodecBuilder.mapCodec(instance -> instance.group(
+            com.mojang.serialization.Codec.STRING.xmap(Mode::valueOf, Mode::name).fieldOf("mode").forGetter((ExistenceUserBlock block) -> block.mode),
+            propertiesCodec()).apply(instance, ExistenceUserBlock::new));
+
+    @Override
+    protected com.mojang.serialization.MapCodec<ExistenceUserBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     private final Mode mode;
 
     public ExistenceUserBlock(Mode mode, Properties properties) {
@@ -40,7 +52,28 @@ public class ExistenceUserBlock extends BaseEntityBlock {
     }
 
     /** Right-clicking with one of the three programming items sets the redstone mode. */
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (!(level.getBlockEntity(pos) instanceof ExistenceUserBlockEntity user)) {
@@ -51,14 +84,22 @@ public class ExistenceUserBlock extends BaseEntityBlock {
 
     /** Hands back the programming item, as every other programmable machine does. */
     @Override
+    //? if forge {
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    //?} else {
+    /*public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+    *///?}
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof ExistenceUserBlockEntity user) {
             ItemStack programming = user.redstone().refund();
             if (!programming.isEmpty()) {
                 Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, programming);
             }
         }
+        //? if forge {
         super.playerWillDestroy(level, pos, state, player);
+        //?} else {
+        /*return super.playerWillDestroy(level, pos, state, player);
+        *///?}
     }
 
     @Nullable

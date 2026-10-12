@@ -10,8 +10,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.common.blocks.machines.BiomeMorpherBlock;
 import theflogat.technomancy.common.energy.EnergyLimits;
 import theflogat.technomancy.common.energy.EnergyPorts;
@@ -124,28 +128,48 @@ public final class BiomeMorpherBlockEntity extends BlockEntity implements Energy
      * {@code LazyOptional.empty()} to every neighbour and could never be charged at all - not by
      * FE, not by EU. The other machines all delegate the same way.
      */
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         energy.invalidate();
     }
+    //?}
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put(TAG_ENERGY, energy.save());
         redstone.save(tag);
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         energy.load(tag.getCompound(TAG_ENERGY));
         redstone.load(tag);
     }

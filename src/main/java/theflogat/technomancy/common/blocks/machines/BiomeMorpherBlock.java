@@ -26,6 +26,16 @@ import theflogat.technomancy.common.tiles.machines.BiomeMorpherBlockEntity;
  */
 public class BiomeMorpherBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<BiomeMorpherBlock> CODEC = simpleCodec(BiomeMorpherBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<BiomeMorpherBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public static final EnumProperty<BiomeTarget> TARGET = EnumProperty.create("target", BiomeTarget.class);
 
     public BiomeMorpherBlock(Properties properties) {
@@ -59,7 +69,28 @@ public class BiomeMorpherBlock extends BaseEntityBlock {
                         BiomeMorpherBlockEntity::serverTick);
     }
 
+    //? if neoforge {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state, level, pos, player, hand, hit)) {
+            case SUCCESS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+
     @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    *///?}
+
+    //? if forge {
+    @Override
+    //?}
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
             InteractionHand hand, BlockHitResult hit) {
         if (level.isClientSide) {

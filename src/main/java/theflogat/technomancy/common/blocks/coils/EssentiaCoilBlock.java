@@ -30,6 +30,16 @@ import theflogat.technomancy.common.tiles.coils.EssentiaCoilBlockEntity;
  */
 public class EssentiaCoilBlock extends CoilBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<EssentiaCoilBlock> CODEC = simpleCodec(EssentiaCoilBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<EssentiaCoilBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     /** Thaumcraft's jar label; the original used {@code itemResource:13}. */
     private static final ResourceLocation LABEL_ITEM = new ResourceLocation("thaumcraft", "jar_label");
 

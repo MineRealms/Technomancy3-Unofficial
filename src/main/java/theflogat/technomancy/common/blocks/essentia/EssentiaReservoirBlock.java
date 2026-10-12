@@ -21,6 +21,16 @@ import theflogat.technomancy.common.tiles.essentia.EssentiaReservoirBlockEntity;
  */
 public class EssentiaReservoirBlock extends BaseEntityBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<EssentiaReservoirBlock> CODEC = simpleCodec(EssentiaReservoirBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<EssentiaReservoirBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     private static final VoxelShape SHAPE = box(2.0, 2.0, 2.0, 14.0, 14.0, 14.0);
 
     public EssentiaReservoirBlock(Properties properties) {

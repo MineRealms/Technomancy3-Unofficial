@@ -42,6 +42,11 @@ public final class CreativeJarBlockEntity extends BlockEntity
     @Nullable
     private AspectId aspect;
 
+    /** Jar capacity exposed by TC4R 20736; also available on the legacy implementation. */
+    public int capacity() {
+        return Integer.MAX_VALUE;
+    }
+
     public CreativeJarBlockEntity(BlockPos pos, BlockState state) {
         super(TechnomBlockEntities.CREATIVE_JAR.get(), pos, state);
     }
@@ -160,8 +165,16 @@ public final class CreativeJarBlockEntity extends BlockEntity
     // ---- persistence and sync ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         aspect = null;
         if (tag.contains(TAG_ASPECT)) {
             try {
@@ -173,16 +186,32 @@ public final class CreativeJarBlockEntity extends BlockEntity
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         if (aspect != null) {
             tag.putString(TAG_ASPECT, aspect.serialized());
         }
     }
 
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         return saveWithoutMetadata();
+        //?} else {
+        /*return saveWithoutMetadata(registries);
+        *///?}
     }
 
     @Override

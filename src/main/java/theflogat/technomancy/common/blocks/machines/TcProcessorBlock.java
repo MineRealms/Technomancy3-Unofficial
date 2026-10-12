@@ -13,6 +13,16 @@ import theflogat.technomancy.common.tiles.machines.TcProcessorBlockEntity;
 /** {@code BlockTCProcessor}. */
 public class TcProcessorBlock extends ProcessorBlock {
 
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<TcProcessorBlock> CODEC = simpleCodec(TcProcessorBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<TcProcessorBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
+
     public TcProcessorBlock(Properties properties) {
         super(properties);
     }

@@ -21,8 +21,12 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.Technomancy;
 import theflogat.technomancy.common.blocks.machines.EnergyCondenserBlock;
 import theflogat.technomancy.common.energy.EnergyLimits;
@@ -329,17 +333,21 @@ public final class EnergyCondenserBlockEntity extends BlockEntity
 
     // ---- capabilities ----
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }
+    //?}
 
+    //? if forge {
     @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         energy.invalidate();
     }
+    //?}
 
     // ---- persistence and sync ----
 
@@ -370,8 +378,16 @@ public final class EnergyCondenserBlockEntity extends BlockEntity
     }
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         energy.load(tag.getCompound(TAG_ENERGY));
         if (store.load(tag.getCompound(TAG_ESSENTIA))) {
             Technomancy.LOGGER.warn("Condenser at {} could not restore its contents verbatim", worldPosition);
@@ -384,8 +400,16 @@ public final class EnergyCondenserBlockEntity extends BlockEntity
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put(TAG_ENERGY, energy.save());
         tag.put(TAG_ESSENTIA, store.save());
         // Partial progress is saved, so stopping a condenser mid-cycle parks the energy it has
@@ -396,8 +420,16 @@ public final class EnergyCondenserBlockEntity extends BlockEntity
     }
 
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         return saveWithoutMetadata();
+        //?} else {
+        /*return saveWithoutMetadata(registries);
+        *///?}
     }
 
     @Override

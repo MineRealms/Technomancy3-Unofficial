@@ -11,7 +11,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import theflogat.technomancy.common.registry.TechnomBlockEntities;
 import theflogat.technomancy.common.tiles.coils.CoilBlockEntity;
 import theflogat.technomancy.common.tiles.coils.ItemCoilBlockEntity;
@@ -22,6 +21,16 @@ import theflogat.technomancy.common.tiles.coils.ItemCoilBlockEntity;
  * clear it.
  */
 public class ItemCoilBlock extends CoilBlock {
+
+    //? if neoforge {
+    /*public static final com.mojang.serialization.MapCodec<ItemCoilBlock> CODEC = simpleCodec(ItemCoilBlock::new);
+
+    @Override
+    protected com.mojang.serialization.MapCodec<ItemCoilBlock> codec() {
+        return CODEC;
+    }
+    *///?}
+
 
     public ItemCoilBlock(Properties properties) {
         super(properties);
@@ -75,6 +84,6 @@ public class ItemCoilBlock extends CoilBlock {
     protected boolean canFeed(Level level, BlockPos target, Direction facing) {
         BlockEntity be = level.isLoaded(target) ? level.getBlockEntity(target) : null;
         return be != null && !(be instanceof CoilBlockEntity)
-                && be.getCapability(ForgeCapabilities.ITEM_HANDLER, facing.getOpposite()).isPresent();
+                && theflogat.technomancy.common.platform.CapabilityAccess.items(be, facing.getOpposite()) != null;
     }
 }

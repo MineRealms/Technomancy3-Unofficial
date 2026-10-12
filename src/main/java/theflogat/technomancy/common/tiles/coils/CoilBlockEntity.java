@@ -150,8 +150,16 @@ public abstract class CoilBlockEntity extends BlockEntity implements Couplable {
     // ---- persistence and sync ----
 
     @Override
+    //? if forge {
     public void load(CompoundTag tag) {
+    //?} else {
+    /*protected void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.load(tag);
+        //?} else {
+        /*super.loadAdditional(tag, registries);
+        *///?}
         int rejected = links.load(tag.getCompound(TAG_LINKS), worldPosition);
         if (rejected > 0) {
             Technomancy.LOGGER.warn("Coil at {} dropped {} saved link(s) that break the link rules",
@@ -162,8 +170,16 @@ public abstract class CoilBlockEntity extends BlockEntity implements Couplable {
     }
 
     @Override
+    //? if forge {
     protected void saveAdditional(CompoundTag tag) {
+    //?} else {
+    /*protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         super.saveAdditional(tag);
+        //?} else {
+        /*super.saveAdditional(tag, registries);
+        *///?}
         tag.put(TAG_LINKS, links.save());
         CompoundTag mode = new CompoundTag();
         redstone.save(mode);
@@ -173,15 +189,31 @@ public abstract class CoilBlockEntity extends BlockEntity implements Couplable {
 
     /** Clients only need what they draw; the link list stays on the server. */
     @Override
+    //? if forge {
     public CompoundTag getUpdateTag() {
+    //?} else {
+    /*public CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
         CompoundTag tag = new CompoundTag();
+        //? if forge {
         writeClientData(tag);
+        //?} else {
+        /*writeClientData(tag, registries);
+        *///?}
         return tag;
     }
 
     @Override
+    //? if forge {
     public void handleUpdateTag(CompoundTag tag) {
+    //?} else {
+    /*public void handleUpdateTag(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
+        //? if forge {
         readClientData(tag);
+        //?} else {
+        /*readClientData(tag, registries);
+        *///?}
     }
 
     @Override
@@ -190,9 +222,17 @@ public abstract class CoilBlockEntity extends BlockEntity implements Couplable {
     }
 
     @Override
+    //? if forge {
     public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet) {
+    //?} else {
+    /*public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
         CompoundTag tag = packet.getTag();
+        //? if forge {
         readClientData(tag == null ? new CompoundTag() : tag);
+        //?} else {
+        /*readClientData(tag == null ? new CompoundTag() : tag, registries);
+        *///?}
         if (level != null) {
             // Re-mesh, so a block colour that depends on this data is redrawn.
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
@@ -200,9 +240,17 @@ public abstract class CoilBlockEntity extends BlockEntity implements Couplable {
     }
 
     /** Subclasses add their filter; the base has nothing the client draws. */
+    //? if forge {
     protected void writeClientData(CompoundTag tag) {
+    //?} else {
+    /*protected void writeClientData(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
     }
 
+    //? if forge {
     protected void readClientData(CompoundTag tag) {
+    //?} else {
+    /*protected void readClientData(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+    *///?}
     }
 }
