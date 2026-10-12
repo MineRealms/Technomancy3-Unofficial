@@ -48,10 +48,11 @@ stonecutter.parameters {
     }
 
     replacements {
-        // The `direction` flag is exactly what the Kotlin DSL's `string(current.parsed >= "1.21")`
-        // sets: true applies from -> to, false applies the reverse. The canonical source is 1.20.1,
-        // so on the 1.20.1 node every rule runs in reverse and finds nothing - a no-op, not a
-        // corruption.
+        if (!neo) {
+            return
+        }
+        // Only the NeoForge target transforms symbols. The Forge target must not reverse
+        // replacements inside inactive NeoForge branches of the canonical source.
         //
         // Order matters: the generic `net.minecraftforge.` rule at the bottom must not see a path a
         // more specific rule already rewrote, or `net.minecraftforge.api.distmarker` would become
@@ -114,6 +115,26 @@ stonecutter.parameters {
         string(neo) {
             replace('net.minecraftforge.', 'net.neoforged.neoforge.')
         }
+
+        string(true) {
+            replace('Mod.EventBusSubscriber', 'net.neoforged.fml.common.EventBusSubscriber')
+        }
+        // Imports and unqualified references must agree. Restrict renames to identifier boundaries.
+        [MinecraftForge: 'NeoForge', ForgeConfigSpec: 'ModConfigSpec',
+         IForgeMenuType: 'IMenuTypeExtension', ForgeFlowingFluid: 'BaseFlowingFluid',
+         LivingHurtEvent: 'LivingIncomingDamageEvent',
+         RegisterGuiOverlaysEvent: 'RegisterGuiLayersEvent'].each { before, after ->
+            regex(true) {
+                replace('\\b' + before + '\\b', after, '\\b' + after + '\\b', before)
+            }
+        }
+
+        [BiomeAuraProfile: 'BiomeAuraValues', isSameItemSameTags: 'isSameItemSameComponents',
+         setSecondsOnFire: 'igniteForSeconds'].each { before, after ->
+            regex(true) { replace('\\b' + before + '\\b', after, '\\b' + after + '\\b', before) }
+        }
+        string(true) { replace('net.minecraft.world.level.block.GlassBlock', 'net.minecraft.world.level.block.TransparentBlock') }
+        regex(true) { replace('\\bGlassBlock\\b', 'TransparentBlock', '\\bTransparentBlock\\b', 'GlassBlock') }
 
         // ---------------------------------------------------------------- vanilla drift
         // `new ResourceLocation(ns, path)` was replaced by a named factory in 1.20.5. The second
