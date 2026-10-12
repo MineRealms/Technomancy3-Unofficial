@@ -1,0 +1,53 @@
+name: Forge setup
+description: >-
+  Checks out the repository, installs JDK 17 and Gradle, and lays down the
+  locally-supplied TC4R maven repository that every Forge build task needs.
+
+# `dev.tc4port:thaumcraft-forge` is a mandatory compile dependency (build.gradle) and it is
+# not publicly redistributable: local-repo/README.md and local-repo/DEPENDENCIES.json both
+# record it as a user-supplied local build, and .gitignore excludes local-repo/** apart from
+# the manifest. CI therefore receives it as an archive rather than from Git.
+#
+# `compileJava` and `check` depend on `verifyLocalDependencies`, which hashes every artifact
+# listed in local-repo/DEPENDENCIES.json, so a stale or partial archive fails the build
+# instead of silently compiling against the wrong Thaumcraft.
+
+inputs:
+  tc4r-archive-url:
+    description: URL of a .tar.gz whose root holds the local-repo contents (dev/tc4port/...).
+    required: true
+  tc4r-archive-token:
+    description: Optional bearer token sent with the download.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Check out
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Install the local TC4R repository
+      shell: bash
+      env:
+        TC4R_ARCHIVE_URL: ${{ inputs.tc4r-archive-url }}
+        TC4R_ARCHIVE_TOKEN: ${{ inputs.tc4r-archive-token }}
+      run: |
+        set -euo pipefail
+        archive="$RUNNER_TEMP/tc4r.tar.gz"
+        curl_args=(--fail --location --silent --show-error --retry 3)
+        if [ -n "${TC4R_ARCHIVE_TOKEN}" ]; then
+          curl_args+=(--header "Authorization: Bearer ${TC4R_ARCHIVE_TOKEN}")
+        fi
+        curl "${curl_args[@]}" --output "$archive" "$TC4R_ARCHIVE_URL"
+        tar --extract --gzip --file "$archive" --directory local-repo
+        test -d local-repo/dev/tc4port
