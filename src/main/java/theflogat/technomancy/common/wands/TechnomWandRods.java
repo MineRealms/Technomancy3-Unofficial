@@ -42,17 +42,17 @@ public final class TechnomWandRods {
     }
 
     public static long charge(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = theflogat.technomancy.common.platform.StackData.read(stack);
         return tag != null && tag.contains(TAG_CHARGE, Tag.TAG_LONG) ? Math.max(0, tag.getLong(TAG_CHARGE)) : 0;
     }
 
     public static void setCharge(ItemStack stack, long q) {
         if (q <= 0) {
-            if (stack.getTag() != null) {
-                stack.removeTagKey(TAG_CHARGE);
+            if (theflogat.technomancy.common.platform.StackData.read(stack) != null) {
+                theflogat.technomancy.common.platform.StackData.remove(stack, TAG_CHARGE);
             }
         } else {
-            stack.getOrCreateTag().putLong(TAG_CHARGE, q);
+            theflogat.technomancy.common.platform.StackData.update(stack, tag -> tag.putLong(TAG_CHARGE, q));
         }
     }
 }

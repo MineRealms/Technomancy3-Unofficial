@@ -1,12 +1,12 @@
 package theflogat.technomancy.common.registry;
 
+import java.util.function.Supplier;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
 import theflogat.technomancy.common.items.PureOreItem;
 import theflogat.technomancy.common.machines.processing.OreProgress;
 import theflogat.technomancy.common.machines.processing.PureOreMaterial;
@@ -20,7 +20,7 @@ import theflogat.technomancy.common.machines.processing.PureOreMaterial;
  */
 public final class TechnomPureOres {
 
-    private static final Map<PureOreMaterial, List<RegistryObject<Item>>> ITEMS =
+    private static final Map<PureOreMaterial, List<Supplier<Item>>> ITEMS =
             new EnumMap<>(PureOreMaterial.class);
 
     private TechnomPureOres() {
@@ -32,7 +32,7 @@ public final class TechnomPureOres {
             throw new IllegalStateException("the purified ores are already registered");
         }
         for (PureOreMaterial material : PureOreMaterial.values()) {
-            List<RegistryObject<Item>> stages = new ArrayList<>(OreProgress.STAGES);
+            List<Supplier<Item>> stages = new ArrayList<>(OreProgress.STAGES);
             for (int stage = 0; stage < OreProgress.STAGES; stage++) {
                 int current = stage;
                 stages.add(items.register(material.itemName(stage),
@@ -45,7 +45,7 @@ public final class TechnomPureOres {
     /** The purified item of one material and stage. */
     public static Item item(PureOreMaterial material, int stage) {
         ensureInitialised();
-        List<RegistryObject<Item>> stages = ITEMS.get(material);
+        List<Supplier<Item>> stages = ITEMS.get(material);
         if (stages == null || stage < 0 || stage >= stages.size()) {
             throw new IllegalArgumentException("no purified " + material + " at stage " + stage);
         }

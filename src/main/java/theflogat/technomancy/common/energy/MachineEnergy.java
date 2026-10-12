@@ -8,9 +8,14 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
+//?} else {
+/*import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.Capabilities;
+*///?}
 import net.minecraftforge.energy.IEnergyStorage;
 import theflogat.technomancy.Technomancy;
 
@@ -32,8 +37,12 @@ public final class MachineEnergy {
     private final EnergyLedger ledger;
     private EnergyPorts ports;
 
+    //? if forge {
     @SuppressWarnings("unchecked")
     private final LazyOptional<IEnergyStorage>[] feViews = new LazyOptional[7];
+    //?} else {
+    /*private final IEnergyStorage[] feViews = new IEnergyStorage[7];
+    *///?}
     @Nullable
     private List<EnergyProtocolExtension> extensions;
 
@@ -76,6 +85,7 @@ public final class MachineEnergy {
         return level != null && !level.isClientSide && !owner.isRemoved();
     }
 
+    //? if forge {
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ENERGY) {
             return feView(side).cast();
@@ -101,6 +111,30 @@ public final class MachineEnergy {
         }
         return view;
     }
+    //?} else {
+    /*@SuppressWarnings("unchecked")
+    @Nullable
+    public <T> T getCapability(BlockCapability<T, Direction> cap, @Nullable Direction side) {
+        if (cap == Capabilities.EnergyStorage.BLOCK) {
+            return (T) feView(side);
+        }
+        for (EnergyProtocolExtension extension : extensions()) {
+            T result = extension.getCapability(cap, side);
+            if (result != null) return result;
+        }
+        return null;
+    }
+
+    private IEnergyStorage feView(@Nullable Direction side) {
+        int index = side == null ? NULL_SIDE : side.get3DDataValue();
+        if (feViews[index] == null) {
+            boolean input = side != null && ports.feIn(side);
+            boolean output = side != null && ports.feOut(side);
+            feViews[index] = new FeEnergyView(ledger, this::gameTime, this::mutable, input, output);
+        }
+        return feViews[index];
+    }
+    *///?}
 
     private List<EnergyProtocolExtension> extensions() {
         if (extensions == null) {
@@ -111,12 +145,17 @@ public final class MachineEnergy {
 
     /** Invalidates all capabilities; new ones are created lazily on the next query. */
     public void invalidate() {
+        //? if forge {
         for (int i = 0; i < feViews.length; i++) {
             if (feViews[i] != null) {
                 feViews[i].invalidate();
                 feViews[i] = null;
             }
         }
+        //?} else {
+        /*java.util.Arrays.fill(feViews, null);
+        owner.invalidateCapabilities();
+        *///?}
         if (extensions != null) {
             extensions.forEach(EnergyProtocolExtension::invalidate);
         }
@@ -168,7 +207,7 @@ public final class MachineEnergy {
     }
 
     private long pushFe(BlockEntity neighbour, Direction face, long time) {
-        IEnergyStorage target = neighbour.getCapability(ForgeCapabilities.ENERGY, face.getOpposite()).orElse(null);
+        IEnergyStorage target = theflogat.technomancy.common.platform.CapabilityAccess.energy(neighbour, face.getOpposite());
         if (target == null || !target.canReceive()) {
             return EnergyProtocolExtension.NOT_APPLICABLE;
         }

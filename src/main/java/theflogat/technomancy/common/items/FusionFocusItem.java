@@ -56,7 +56,7 @@ public class FusionFocusItem extends Item implements FocusIdentityItem {
 
     @Override
     public FocusStateView focusState(ItemStack stack) {
-        CompoundTag root = stack.getTagElement(TAG_ROOT);
+        CompoundTag root = theflogat.technomancy.common.platform.StackData.read(stack).getCompound(TAG_ROOT);
         if (root == null) {
             return new FocusStateView(FOCUS_ID, List.of(), Map.of());
         }
@@ -104,9 +104,9 @@ public class FusionFocusItem extends Item implements FocusIdentityItem {
             root.put(TAG_PROPERTIES, properties);
         }
         if (root.isEmpty()) {
-            result.removeTagKey(TAG_ROOT);
+            theflogat.technomancy.common.platform.StackData.remove(result, TAG_ROOT);
         } else {
-            result.getOrCreateTag().put(TAG_ROOT, root);
+            theflogat.technomancy.common.platform.StackData.update(result, tag -> tag.put(TAG_ROOT, root));
         }
         return result;
     }
@@ -142,7 +142,11 @@ public class FusionFocusItem extends Item implements FocusIdentityItem {
 
     /** TC4R writes the Vis cost and the upgrade lines; the two usage lines are the port's. */
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    *///?}
         FocusApi.appendFocusTooltip(stack, lines);
         lines.add(Component.translatable("item.technom.fusion_focus.usage")
                 .withStyle(net.minecraft.ChatFormatting.GRAY));

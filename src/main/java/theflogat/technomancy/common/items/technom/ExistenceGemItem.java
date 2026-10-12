@@ -29,14 +29,14 @@ public final class ExistenceGemItem extends Item {
     }
 
     public static int charge(ItemStack stack) {
-        return stack.hasTag() ? Math.max(0, Math.min(MAX_CHARGE, stack.getTag().getInt(TAG_CHARGE))) : 0;
+        return Math.max(0, Math.min(MAX_CHARGE, theflogat.technomancy.common.platform.StackData.read(stack).getInt(TAG_CHARGE)));
     }
 
     /** Adds charge, clamped to the cap. Returns how much was actually taken. */
     public static int addCharge(ItemStack stack, int amount) {
         int before = charge(stack);
         int after = Math.max(0, Math.min(MAX_CHARGE, before + amount));
-        stack.getOrCreateTag().putInt(TAG_CHARGE, after);
+        theflogat.technomancy.common.platform.StackData.update(stack, tag -> tag.putInt(TAG_CHARGE, after));
         return after - before;
     }
 

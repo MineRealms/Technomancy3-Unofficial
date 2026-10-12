@@ -54,11 +54,19 @@ public sealed interface FuelCondition {
         return new ResourceLocation(Technomancy.MOD_ID, path);
     }
 
+    //? if forge {
     private static DataResult<? extends Codec<? extends FuelCondition>> codecFor(ResourceLocation type) {
+    //?} else {
+    /*private static DataResult<? extends MapCodec<? extends FuelCondition>> codecFor(ResourceLocation type) {
+    *///?}
         MapCodec<? extends FuelCondition> codec = TYPES.get(type);
         return codec == null
                 ? DataResult.error(() -> "Unknown essentia fuel condition type: " + type)
+                //? if forge {
                 : DataResult.success(codec.codec());
+                //?} else {
+                /*: DataResult.success(codec);
+                *///?}
     }
 
     // ---- conditions ----

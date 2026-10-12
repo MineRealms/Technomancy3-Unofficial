@@ -4,11 +4,15 @@ import com.mojang.logging.LogUtils;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
+//? if forge {
 import net.minecraftforge.fml.DistExecutor;
+//?}
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+//? if forge {
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+//?}
 import org.slf4j.Logger;
 import theflogat.technomancy.common.energy.EnergyUnits;
 import theflogat.technomancy.common.machines.CondenserBalance;
@@ -38,9 +42,15 @@ public final class Technomancy {
      * {@code registerConfig} resolves the owner through the overridden {@code getContainer()},
      * not through the thread-local, so no static accessor is needed.
      */
+    //? if forge {
     public Technomancy(FMLJavaModLoadingContext context) {
         IEventBus modBus = context.getModEventBus();
         context.registerConfig(ModConfig.Type.COMMON, TechnomancyConfig.SPEC);
+    //?} else {
+    /*public Technomancy(IEventBus modBus, net.neoforged.fml.ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, TechnomancyConfig.SPEC);
+        modBus.addListener(theflogat.technomancy.common.platform.NeoCapabilities::register);
+    *///?}
 
         // Blocks before items: the block registry populates the item registry with its
         // BlockItems, and the creative tab enumerates the item registry.
@@ -53,13 +63,15 @@ public final class Technomancy {
         TechnomFluids.FLUIDS.register(modBus);
         // Optional Botania module: only registered when Botania is loaded, because its blocks and
         // block entities link the Botania API at class load.
+        //? if forge {
         if (theflogat.technomancy.compat.botania.BotaniaPresence.isLoaded()) {
             theflogat.technomancy.compat.botania.BotaniaContent.install();
         }
+        //?}
         TechnomCreativeTabs.TABS.register(modBus);
         // S2 machines and storage: the processors have a menu.
         TechnomMenus.TYPES.register(modBus);
-        theflogat.technomancy.common.network.TechnomNetwork.register();
+        theflogat.technomancy.common.network.TechnomNetwork.register(modBus);
 
         modBus.addListener(this::commonSetup);
         // Server-side data: the aspect fuel table is a data pack, so it reloads with /reload.
@@ -76,8 +88,14 @@ public final class Technomancy {
         // S3 Existence: killing a mob charges the gem the Existence machines are crafted from.
         MinecraftForge.EVENT_BUS.addListener(Technomancy::onLivingDeath);
         theflogat.technomancy.common.player.PlayerAffinityEffects.register(MinecraftForge.EVENT_BUS);
+        //? if forge {
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                 () -> () -> theflogat.technomancy.client.TechnomancyClient.init(modBus));
+        //?} else {
+        /*if (net.neoforged.fml.loading.FMLEnvironment.dist == Dist.CLIENT) {
+            theflogat.technomancy.client.TechnomancyClient.init(modBus);
+        }
+        *///?}
     }
 
     private static void onPlayerLogin(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {

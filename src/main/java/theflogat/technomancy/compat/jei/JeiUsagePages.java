@@ -110,13 +110,14 @@ public final class JeiUsagePages {
             Page.of(TechnomBlocks.EXISTENCE_FOUNTAIN, "existence_fountain"),
             Page.of(TechnomItems.TREASURE_FIRE_GEM, "treasure_fire_gem"),
             Page.of(TechnomItems.TREASURE_POWER_PLATE, "treasure_power_plate"),
-            Page.of(TechnomItems.TREASURE_GOLDEN_WING, "treasure_golden_wing"),
-
-            // ---- Botania, only when it is installed ----
-            Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.FLOWER_DYNAMO, "flower_dynamo"),
-            Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.MANA_FABRICATOR, "mana_fabricator"),
-            Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.MANA_EXCHANGER, "mana_exchanger"),
-            Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.PROCESSOR_BO, "processor_bo"));
+            Page.of(TechnomItems.TREASURE_GOLDEN_WING, "treasure_golden_wing")
+            //? if forge {
+            , Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.FLOWER_DYNAMO, "flower_dynamo")
+            , Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.MANA_FABRICATOR, "mana_fabricator")
+            , Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.MANA_EXCHANGER, "mana_exchanger")
+            , Page.botania(theflogat.technomancy.compat.botania.BotaniaContent.PROCESSOR_BO, "processor_bo")
+            //?}
+    );
 
     /** The distinct translation keys, in list order; what the lang guard iterates. */
     public static List<String> paths() {

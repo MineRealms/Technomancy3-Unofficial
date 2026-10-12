@@ -3,8 +3,12 @@ package theflogat.technomancy.common.energy;
 import javax.annotation.Nullable;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
+//?} else {
+/*import net.neoforged.neoforge.capabilities.BlockCapability;
+*///?}
 
 /**
  * An optional energy protocol (e.g. GT EU) attached to one {@link MachineEnergy}. Its
@@ -14,7 +18,11 @@ import net.minecraftforge.common.util.LazyOptional;
 public interface EnergyProtocolExtension {
 
     /** Returns the protocol's capability for {@code side}, or an empty optional when {@code cap} is not its own. */
+    //? if forge {
     <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side);
+    //?} else {
+    /*@Nullable <T> T getCapability(BlockCapability<T, Direction> cap, @Nullable Direction side);
+    *///?}
 
     /**
      * Actively sends energy to {@code neighbour} through this protocol.

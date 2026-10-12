@@ -17,13 +17,27 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
+//?}
+//? if forge {
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import net.minecraftforge.energy.IEnergyStorage;
+//? if forge {
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+//?}
+//? if forge {
 import net.minecraftforge.event.TickEvent;
+//?} else {
+/*import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+*///?}
 import net.minecraftforge.eventbus.api.IEventBus;
 import theflogat.technomancy.Technomancy;
 
@@ -50,10 +64,13 @@ public final class WandChargeEvents {
     }
 
     public static void register(IEventBus forgeBus) {
+        //? if forge {
         forgeBus.addGenericListener(ItemStack.class, WandChargeEvents::attach);
+        //?}
         forgeBus.addListener(WandChargeEvents::onPlayerTick);
     }
 
+    //? if forge {
     private static void attach(AttachCapabilitiesEvent<ItemStack> event) {
         ItemStack stack = event.getObject();
         if (stack.getItem() instanceof WandCarrierItem) {
@@ -80,9 +97,20 @@ public final class WandChargeEvents {
         }
     }
 
+    //?}
+
+    //? if forge {
     private static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+    //?} else {
+    /*private static void onPlayerTick(PlayerTickEvent.Post event) {
+    *///?}
+        //? if forge {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)
                 || player.tickCount % CHARGE_INTERVAL != 0 || player.isSpectator()) {
+        //?} else {
+        /*if (!(event.getEntity() instanceof ServerPlayer player)
+                || player.tickCount % CHARGE_INTERVAL != 0 || player.isSpectator()) {
+        *///?}
             return;
         }
         Inventory inventory = player.getInventory();
@@ -150,12 +178,12 @@ public final class WandChargeEvents {
             if (battery.isEmpty() || battery.getItem() instanceof WandCarrierItem) {
                 continue;
             }
-            Optional<IEnergyStorage> storage = battery.getCapability(ForgeCapabilities.ENERGY).resolve();
-            if (storage.isEmpty() || !storage.get().canExtract()) {
+            IEnergyStorage storage = theflogat.technomancy.common.platform.CapabilityAccess.energy(battery);
+            if (storage == null || !storage.canExtract()) {
                 continue;
             }
             int ask = (int) Math.min(Integer.MAX_VALUE, wanted - got);
-            int taken = storage.get().extractEnergy(ask, false);
+            int taken = storage.extractEnergy(ask, false);
             got += Math.max(0, Math.min(taken, ask));
         }
         return got;

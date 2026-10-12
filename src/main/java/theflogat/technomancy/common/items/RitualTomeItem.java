@@ -7,7 +7,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
+//? if forge {
 import net.minecraftforge.fml.DistExecutor;
+//?}
 
 /**
  * {@code ItemRitualTome}: opens the ritual list. The registry is filled on both sides during
@@ -22,8 +24,12 @@ public final class RitualTomeItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (level.isClientSide) {
+            //? if forge {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                     () -> () -> theflogat.technomancy.client.RitualTomeClient.open());
+            //?} else {
+            /*theflogat.technomancy.client.RitualTomeClient.open();
+            *///?}
         }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide);
     }

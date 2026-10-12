@@ -17,6 +17,7 @@ public final class BotaniaPresence {
 
     /** Whether Botania is loaded. Valid from mod construction onwards. */
     public static boolean isLoaded() {
-        return ModList.get().isLoaded(MOD_ID);
+        return theflogat.technomancy.common.platform.PlatformVersion.FORGE
+                && ModList.get().isLoaded(MOD_ID);
     }
 }

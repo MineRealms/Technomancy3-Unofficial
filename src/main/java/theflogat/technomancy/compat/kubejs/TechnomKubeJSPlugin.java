@@ -1,7 +1,12 @@
 package theflogat.technomancy.compat.kubejs;
 
+//? if forge {
 import dev.latvian.mods.kubejs.KubeJSPlugin;
 import dev.latvian.mods.kubejs.script.BindingsEvent;
+//?} else {
+/*import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
+import dev.latvian.mods.kubejs.script.BindingRegistry;
+*///?}
 
 /**
  * KubeJS integration.
@@ -16,10 +21,18 @@ import dev.latvian.mods.kubejs.script.BindingsEvent;
  * event of this mod's own that a script could listen for, so an empty override for either would
  * only be a claim that something is there.</p>
  */
+//? if forge {
 public final class TechnomKubeJSPlugin extends KubeJSPlugin {
+//?} else {
+/*public final class TechnomKubeJSPlugin implements KubeJSPlugin {
+*///?}
 
     @Override
+    //? if forge {
     public void registerBindings(BindingsEvent event) {
+    //?} else {
+    /*public void registerBindings(BindingRegistry event) {
+    *///?}
         // The class, not an instance: everything on it is static, and KubeJS binds its own
         // helpers (ResourceLocation, Duration) the same way.
         event.add("Technom", TechnomJS.class);

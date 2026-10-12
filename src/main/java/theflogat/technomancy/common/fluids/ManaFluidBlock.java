@@ -13,7 +13,11 @@ import net.minecraft.world.level.material.FlowingFluid;
 public final class ManaFluidBlock extends LiquidBlock {
 
     public ManaFluidBlock(Supplier<? extends FlowingFluid> fluid) {
+        //? if forge {
         super(fluid, BlockBehaviour.Properties.of()
+        //?} else {
+        /*super(fluid.get(), BlockBehaviour.Properties.of()
+        *///?}
                 .mapColor(net.minecraft.world.level.material.MapColor.COLOR_LIGHT_BLUE)
                 .noCollission()
                 .strength(100.0F)

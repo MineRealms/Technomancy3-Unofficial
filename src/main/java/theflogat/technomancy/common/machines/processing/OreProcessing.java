@@ -37,7 +37,7 @@ public final class OreProcessing {
             CompoundTag tag = new CompoundTag();
             progress.save(tag);
             if (!tag.isEmpty()) {
-                stack.setTag(tag);
+                theflogat.technomancy.common.platform.StackData.write(stack, tag);
             }
             return stack;
         }

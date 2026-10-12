@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
-import net.minecraftforge.registries.RegistryObject;
 import theflogat.technomancy.common.blocks.botania.FlowerDynamoBlock;
 import theflogat.technomancy.common.blocks.botania.ManaExchangerBlock;
 import theflogat.technomancy.common.blocks.botania.ManaFabricatorBlock;
@@ -37,19 +36,19 @@ import theflogat.technomancy.common.tiles.machines.BoProcessorBlockEntity;
  */
 public final class BotaniaContent {
 
-    public static RegistryObject<Block> FLOWER_DYNAMO;
-    public static RegistryObject<Block> MANA_FABRICATOR;
-    public static RegistryObject<Block> PROCESSOR_BO;
-    public static RegistryObject<Block> MANA_EXCHANGER;
+    public static Supplier<Block> FLOWER_DYNAMO;
+    public static Supplier<Block> MANA_FABRICATOR;
+    public static Supplier<Block> PROCESSOR_BO;
+    public static Supplier<Block> MANA_EXCHANGER;
 
-    public static RegistryObject<BlockEntityType<FlowerDynamoBlockEntity>> FLOWER_DYNAMO_BE;
-    public static RegistryObject<BlockEntityType<ManaFabricatorBlockEntity>> MANA_FABRICATOR_BE;
-    public static RegistryObject<BlockEntityType<BoProcessorBlockEntity>> PROCESSOR_BO_BE;
-    public static RegistryObject<BlockEntityType<ManaExchangerBlockEntity>> MANA_EXCHANGER_BE;
+    public static Supplier<BlockEntityType<FlowerDynamoBlockEntity>> FLOWER_DYNAMO_BE;
+    public static Supplier<BlockEntityType<ManaFabricatorBlockEntity>> MANA_FABRICATOR_BE;
+    public static Supplier<BlockEntityType<BoProcessorBlockEntity>> PROCESSOR_BO_BE;
+    public static Supplier<BlockEntityType<ManaExchangerBlockEntity>> MANA_EXCHANGER_BE;
 
     /** {@code ItemBOMaterial:0} mana coil, :1 manasteel gear. */
-    public static RegistryObject<Item> MANA_COIL;
-    public static RegistryObject<Item> MANASTEEL_GEAR;
+    public static Supplier<Item> MANA_COIL;
+    public static Supplier<Item> MANASTEEL_GEAR;
 
     private BotaniaContent() {
     }
@@ -91,8 +90,8 @@ public final class BotaniaContent {
     }
 
     /** The shared block registry's own helper also attaches the {@link BlockItem}. */
-    private static RegistryObject<Block> block(String name, Supplier<Block> block) {
-        RegistryObject<Block> registered = TechnomBlocks.BLOCKS.register(name, block);
+    private static Supplier<Block> block(String name, Supplier<Block> block) {
+        Supplier<Block> registered = TechnomBlocks.BLOCKS.register(name, block);
         TechnomItems.ITEMS.register(name, () -> new BlockItem(registered.get(), new Item.Properties()));
         return registered;
     }

@@ -82,7 +82,11 @@ public class PenItem extends Item implements ScribeTools {
     }
 
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    *///?}
         lines.add(Component.translatable("item.technom.pen.tooltip").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

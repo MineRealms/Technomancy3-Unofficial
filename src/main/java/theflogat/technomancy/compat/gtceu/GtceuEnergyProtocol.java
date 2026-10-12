@@ -1,13 +1,25 @@
 package theflogat.technomancy.compat.gtceu;
 
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
+//? if forge {
 import com.gregtechceu.gtceu.api.capability.compat.EUToFEProvider;
+//?}
+//? if forge {
 import com.gregtechceu.gtceu.api.capability.forge.GTCapability;
+//?} else {
+/*import com.gregtechceu.gtceu.api.capability.GTCapability;
+import com.gregtechceu.gtceu.api.capability.compat.GTEnergyWrapper;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+*///?}
 import javax.annotation.Nullable;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
+//? if forge {
 import net.minecraftforge.common.capabilities.Capability;
+//?}
+//? if forge {
 import net.minecraftforge.common.util.LazyOptional;
+//?}
 import theflogat.technomancy.common.energy.EnergyPorts;
 import theflogat.technomancy.common.energy.EnergyProtocolExtension;
 import theflogat.technomancy.common.energy.EnergyUnits;
@@ -28,14 +40,19 @@ public final class GtceuEnergyProtocol implements EnergyProtocolExtension {
     private final MachineEnergy energy;
     /** Frozen at construction so a view's readings and a push's packet size cannot disagree. */
     private final long qPerEu;
+    //? if forge {
     @SuppressWarnings("unchecked")
     private final LazyOptional<IEnergyContainer>[] views = new LazyOptional[7];
+    //?} else {
+    /*private final IEnergyContainer[] views = new IEnergyContainer[7];
+    *///?}
 
     public GtceuEnergyProtocol(MachineEnergy energy) {
         this.energy = energy;
         this.qPerEu = EnergyUnits.qPerEu();
     }
 
+    //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         if (cap != GTCapability.CAPABILITY_ENERGY_CONTAINER || !speaksEu(side)) {
@@ -43,6 +60,16 @@ public final class GtceuEnergyProtocol implements EnergyProtocolExtension {
         }
         return view(side).cast();
     }
+
+    //?} else {
+    /*@Override
+    @SuppressWarnings("unchecked")
+    @Nullable
+    public <T> T getCapability(BlockCapability<T, Direction> cap, @Nullable Direction side) {
+        if (cap != GTCapability.CAPABILITY_ENERGY_CONTAINER || !speaksEu(side)) return null;
+        return (T) view(side);
+    }
+    *///?}
 
     /**
      * Only a face that really carries EU gets a container. Shadowing an FE-only face with a
@@ -58,6 +85,7 @@ public final class GtceuEnergyProtocol implements EnergyProtocolExtension {
         return ports.euIn(side) || ports.euOut(side);
     }
 
+    //? if forge {
     private LazyOptional<IEnergyContainer> view(@Nullable Direction side) {
         int index = side == null ? NULL_SIDE : side.get3DDataValue();
         LazyOptional<IEnergyContainer> view = views[index];
@@ -74,11 +102,30 @@ public final class GtceuEnergyProtocol implements EnergyProtocolExtension {
         return view;
     }
 
+    //?} else {
+    /*private IEnergyContainer view(@Nullable Direction side) {
+        int index = side == null ? NULL_SIDE : side.get3DDataValue();
+        if (views[index] == null) {
+            EnergyPorts ports = energy.ports();
+            boolean input = side != null && ports.euIn(side);
+            boolean output = side != null && ports.euOut(side);
+            EuPort port = new EuPort(energy.ledger(), energy::gameTime, energy::mutable, qPerEu, side, input, output);
+            views[index] = new GtEnergyContainerView(port);
+        }
+        return views[index];
+    }
+    *///?}
+
     @Override
     public long push(BlockEntity neighbour, Direction face, long gameTime) {
         Direction target = face.getOpposite();
+        //? if forge {
         IEnergyContainer receiver = neighbour.getCapability(GTCapability.CAPABILITY_ENERGY_CONTAINER, target)
                 .orElse(null);
+        //?} else {
+        /*IEnergyContainer receiver = neighbour.getLevel() == null ? null : neighbour.getLevel().getCapability(
+                GTCapability.CAPABILITY_ENERGY_CONTAINER, neighbour.getBlockPos(), neighbour.getBlockState(), neighbour, target);
+        *///?}
         if (receiver == null) {
             return NOT_APPLICABLE;
         }
@@ -86,7 +133,11 @@ public final class GtceuEnergyProtocol implements EnergyProtocolExtension {
         // Energy. Such a neighbour does not really speak EU: sending packets into it would quantise
         // our output and convert twice at GT's ratio, so we decline and let MachineEnergy use the
         // native FE path instead.
+        //? if forge {
         if (receiver instanceof EUToFEProvider.GTEnergyWrapper) {
+        //?} else {
+        /*if (receiver instanceof GTEnergyWrapper) {
+        *///?}
             return NOT_APPLICABLE;
         }
         // Past this point the neighbour speaks EU, so every refusal has to be 0 rather than
@@ -100,11 +151,15 @@ public final class GtceuEnergyProtocol implements EnergyProtocolExtension {
 
     @Override
     public void invalidate() {
+        //? if forge {
         for (int i = 0; i < views.length; i++) {
             if (views[i] != null) {
                 views[i].invalidate();
                 views[i] = null;
             }
         }
+        //?} else {
+        /*java.util.Arrays.fill(views, null);
+        *///?}
     }
 }

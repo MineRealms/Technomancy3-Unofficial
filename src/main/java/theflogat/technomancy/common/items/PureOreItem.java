@@ -46,7 +46,7 @@ public class PureOreItem extends Item {
 
     /** The pass record carried by this stack, which is all its NBT holds. */
     public static OreProgress progressOf(ItemStack stack) {
-        return stack.hasTag() ? OreProgress.load(stack.getOrCreateTag()) : OreProgress.NONE;
+        return OreProgress.load(theflogat.technomancy.common.platform.StackData.read(stack));
     }
 
     @Override
@@ -55,8 +55,12 @@ public class PureOreItem extends Item {
     }
 
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip,
             TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    *///?}
         tooltip.add(Component.translatable("technom.tooltip.purity", stage + 1)
                 .withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC));
         Map<String, Integer> passes = progressOf(stack).allPasses();

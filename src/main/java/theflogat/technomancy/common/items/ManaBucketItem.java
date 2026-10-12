@@ -8,7 +8,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluid;
+//? if forge {
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
+//?}
 import net.minecraftforge.fluids.capability.wrappers.FluidBucketWrapper;
 
 /**
@@ -18,11 +20,17 @@ import net.minecraftforge.fluids.capability.wrappers.FluidBucketWrapper;
 public final class ManaBucketItem extends BucketItem {
 
     public ManaBucketItem(Supplier<? extends Fluid> fluid) {
+        //? if forge {
         super(fluid, new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1));
+        //?} else {
+        /*super(fluid.get(), new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1));
+        *///?}
     }
 
+    //? if forge {
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable CompoundTag nbt) {
         return new FluidBucketWrapper(stack);
     }
+    //?}
 }

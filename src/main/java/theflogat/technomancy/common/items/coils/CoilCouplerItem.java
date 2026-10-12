@@ -149,7 +149,11 @@ public class CoilCouplerItem extends Item {
     }
 
     @Override
+    //? if forge {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+    //?} else {
+    /*public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    *///?}
         Optional<GlobalPos> bound = boundCoil(stack);
         if (bound.isPresent()) {
             BlockPos pos = bound.get().pos();
@@ -167,15 +171,15 @@ public class CoilCouplerItem extends Item {
         tag.putInt("x", coil.pos().getX());
         tag.putInt("y", coil.pos().getY());
         tag.putInt("z", coil.pos().getZ());
-        stack.getOrCreateTag().put(TAG_BOUND, tag);
+        theflogat.technomancy.common.platform.StackData.update(stack, root -> root.put(TAG_BOUND, tag));
     }
 
     public static void unbind(ItemStack stack) {
-        stack.removeTagKey(TAG_BOUND);
+        theflogat.technomancy.common.platform.StackData.remove(stack, TAG_BOUND);
     }
 
     public static Optional<GlobalPos> boundCoil(ItemStack stack) {
-        CompoundTag root = stack.getTag();
+        CompoundTag root = theflogat.technomancy.common.platform.StackData.read(stack);
         if (root == null || !root.contains(TAG_BOUND, Tag.TAG_COMPOUND)) {
             return Optional.empty();
         }
