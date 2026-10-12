@@ -69,7 +69,10 @@ def ensure_world(name: str) -> None:
 
 
 def main() -> int:
+    global RUN_DIR, SAVES, TOKEN_FILE, LOG, PORT, TEMPLATE
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--node", choices=["1.20.1-forge", "1.21.1-neoforge"], default="1.20.1-forge")
+    parser.add_argument("--port", type=int, help="override the target bridge port")
     parser.add_argument("probes", type=Path, nargs="+",
                         help="probe files or directories, run in the order given")
     parser.add_argument("--world", default=DEFAULT_WORLD, help="save folder to quick-join")
@@ -83,6 +86,13 @@ def main() -> int:
                         help="extra Gradle property for the launch, e.g. -P withGtceu=true. "
                              "Repeatable. Ignored with --attach, which launches nothing.")
     args = parser.parse_args()
+    neo = args.node == "1.21.1-neoforge"
+    RUN_DIR = harness.ROOT / ("run-client-1.21.1" if neo else "run-client")
+    SAVES = RUN_DIR / "saves"
+    TOKEN_FILE = RUN_DIR / "RosettaRemoteDebugBridge" / "remote-token.txt"
+    LOG = harness.ROOT / "build" / f"client-probe-{args.node}.log"
+    PORT = args.port if args.port is not None else (48792 if neo else 48791)
+    TEMPLATE = harness.ROOT / ("run-server-1.21.1" if neo else "run-server") / "world-probe"
 
     files = harness.probe_files(args.probes)
     if not files:
@@ -95,7 +105,7 @@ def main() -> int:
     harness.require_bridge(RUN_DIR)
     ensure_world(args.world)
 
-    gradle_args = ["runClient", f"-PquickPlay={args.world}"]
+    gradle_args = [f":{args.node}:runClient", f"-PquickPlay={args.world}", f"-PclientProbePort={PORT}"]
     gradle_args += [f"-P{prop}" for prop in args.property]
     client = harness.launch(gradle_args, LOG)
     try:

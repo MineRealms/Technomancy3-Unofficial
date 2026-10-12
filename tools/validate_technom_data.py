@@ -39,6 +39,7 @@ NAMESPACE = "technom"
 DATA = ROOT / "src/main/resources/data" / NAMESPACE
 ASSETS = ROOT / "src/main/resources/assets" / NAMESPACE
 LANG_FILES = ("en_us.json", "zh_cn.json")
+RECIPE_DIRECTORY = "recipes"
 
 CONDITION_MEMBERS = ("conditions", "forge:conditions")
 
@@ -191,7 +192,7 @@ def condition_items(node: object, found: "set[str]") -> None:
         return
     if not isinstance(node, dict):
         return
-    if node.get("type") == "forge:item_exists" and isinstance(node.get("item"), str):
+    if node.get("type") in ("forge:item_exists", "neoforge:item_exists") and isinstance(node.get("item"), str):
         found.add(node["item"])
     for key in ("values", "value"):
         if key in node:
@@ -281,7 +282,7 @@ def check_recipe(report: Report, refs: Refs, path: pathlib.Path, doc: object) ->
     condition_items(doc.get(RECIPE_CONDITION_MEMBER, []), gated)
     if gated:
         refs.deferred.setdefault(where, set()).update(gated)
-    if CATALOG_CONDITION_MEMBER in doc:
+    if CATALOG_CONDITION_MEMBER != RECIPE_CONDITION_MEMBER and CATALOG_CONDITION_MEMBER in doc:
         report.error(where, "recipes are gated with %r, not %r (RecipeManager's Forge patch)"
                      % (RECIPE_CONDITION_MEMBER, CATALOG_CONDITION_MEMBER))
 
@@ -295,7 +296,7 @@ def check_recipe(report: Report, refs: Refs, path: pathlib.Path, doc: object) ->
     allowed = schema["required"] | schema["optional"] | {"type", RECIPE_CONDITION_MEMBER}
     only(report, where, doc, allowed, schema["required"])
 
-    recipe_id = "%s:%s" % (NAMESPACE, path.relative_to(DATA / "recipes")
+    recipe_id = "%s:%s" % (NAMESPACE, path.relative_to(DATA / RECIPE_DIRECTORY)
                            .with_suffix("").as_posix())
     refs.recipe_ids.append((recipe_id, where))
 
@@ -555,14 +556,34 @@ def load_lang() -> "dict[str, dict[str, str]]":
 
 
 def main() -> int:
+    global DATA, ASSETS, RECIPE_DIRECTORY, RECIPE_CONDITION_MEMBER, CATALOG_CONDITION_MEMBER, CONDITION_MEMBERS
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--node", choices=["1.20.1-forge", "1.21.1-neoforge"],
+                        help="validate that node's processed resources rather than the canonical source")
+    parser.add_argument("--resources", type=pathlib.Path, help="explicit processed resource root")
     parser.add_argument("--inventory", type=pathlib.Path,
-                        default=ROOT / "run-gametest/technom-data-inventory.json",
+                        default=None,
                         help="registry dump written by the DataPackGameTests inventory test")
     parser.add_argument("--require-inventory", action="store_true",
                         help="fail instead of skipping when the inventory is absent")
     arguments = parser.parse_args()
+    neo = arguments.node == "1.21.1-neoforge"
+    if arguments.node or arguments.resources:
+        resource_root = arguments.resources or ROOT / "versions" / arguments.node / "build/resources/main"
+        DATA = resource_root / "data" / NAMESPACE
+        ASSETS = resource_root / "assets" / NAMESPACE
+    if neo:
+        RECIPE_DIRECTORY = "recipe"
+        RECIPE_CONDITION_MEMBER = CATALOG_CONDITION_MEMBER = "neoforge:conditions"
+        CONDITION_MEMBERS = ("neoforge:conditions",)
+        RESEARCH_ENTRY_FIELDS.discard("forge:conditions")
+        RESEARCH_ENTRY_FIELDS.add("neoforge:conditions")
+        ASPECT_ROOT_FIELDS.discard("forge:conditions")
+        ASPECT_ROOT_FIELDS.add("neoforge:conditions")
+    if arguments.inventory is None:
+        run_dir = "run-gametest-1.21.1" if neo else "run-gametest"
+        arguments.inventory = ROOT / run_dir / "technom-data-inventory.json"
 
     report = Report()
     refs = Refs()
@@ -583,15 +604,15 @@ def main() -> int:
     for path, doc in parsed.items():
         relative = path.relative_to(DATA)
         head = relative.parts[0]
-        if head == "recipes":
+        if head == RECIPE_DIRECTORY:
             check_recipe(report, refs, path, doc)
             recipe_files.add("%s:%s" % (NAMESPACE,
-                                        relative.relative_to("recipes").with_suffix("").as_posix()))
+                                        relative.relative_to(RECIPE_DIRECTORY).with_suffix("").as_posix()))
         elif relative.parts[:2] == ("thaumcraft", "research"):
             check_research(report, refs, path, doc)
         elif relative.parts[:2] == ("thaumcraft", "object_aspects"):
             check_object_aspects(report, refs, path, doc)
-        elif head in ("loot_tables", "structures", "tags", "advancements"):
+        elif head in ("loot_tables", "loot_table", "structures", "structure", "tags", "advancements", "advancement"):
             continue
         else:
             report.warn(rel(path), "no schema known for this directory; only parsed")
