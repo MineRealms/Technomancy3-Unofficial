@@ -463,6 +463,36 @@ Technomancy/
 - 此时 `src/` 仍是 1.20.1 形状，1.21.1 节点**必然编译失败**——这是预期的。
 - **门禁**：`./gradlew buildAndCollect` 能产出两个 jar（1.21.1 那个可以是失败的构建，但管线结构成立）。
 
+### S1 结果（2026-10-12 实测完成，管线结构成立）
+
+1.21.1 节点写在 `build.gradle` 的 `else` 分支里，用 `net.neoforged.moddev`（NeoForge **21.1.259**）。**没有**按原方案另建 `build.1.21.1-neoforge.gradle.kts` —— 共享脚本的 `if (isForge)` 分支已经能干净地把两套工具链分开，多一个脚本反而要重复一份公共配置。
+
+**ModDevGradle 两个插件族的 API 差异（这次实测确认，文档里没写清楚）：**
+
+| 事实 | 后果 |
+|---|---|
+| **核心 MDG 没有 `mod*` 配置**（`modImplementation`/`modCompileOnly`/`modRuntimeOnly` 只存在于 `legacyforge`） | 1.21.1 节点必须用普通 `implementation`/`compileOnly`/`runtimeOnly`。**这没问题**：1.21 跑 official mappings，本来就不需要重映射 |
+| `NeoForgeExtension` **有** `unitTest { enable(); testedMod = mods.<name> }`（`LegacyForgeExtension` 没有） | 1.21.1 的 test 源集由插件自动接好，不必像 1.20.1 那样手工 `addModdingDependenciesTo` |
+| `RunModel` **没有** `gameTestServer()` 便捷方法 | 用 `type = 'gameTestServer'` 按名字设（与 legacyforge 一致） |
+| NeoForge 把 `forge.*` 系统属性改名为 `neoforge.*` | GameTest 命名空间要写 `neoforge.enabledGameTestNamespaces` |
+| Parchment DSL 是 `parchment { minecraftVersion; mappingsVersion }` | 与 ForgeGradle 的写法不同 |
+
+**本地工件（TC4R 1.21.1）：** 没有任何 1.21.1 的 `local-repo` 现成可用，所以从 `1.21.1-neoforge-20736.zip` 里取 `thaumcraft-neoforge-4.2.3.5-1.21.1-port.0.1.0-20736.jar`，按 1.20.1 的 maven 约定重命名/落位成 `local-repo/dev/tc4port/thaumcraft-neoforge/0.1.0-20736/thaumcraft-neoforge-0.1.0-20736.jar` + 一个最小 `.pom`，并新增**按节点的清单** `local-repo/DEPENDENCIES.1.21.1-neoforge.json`。`verifyLocalDependencies` 改为优先读 `DEPENDENCIES.<节点>.json`、缺失时回退 `DEPENDENCIES.json` —— 这样 1.20.1 的清单**保持原名**，`tools/bootstrap-local-deps.ps1` 和 CI 都不用动。`.gitignore` 加了一条 `!local-repo/DEPENDENCIES.*.json`。
+
+**顺带提前处理的两个风险：** R8（两节点的 `runData` 会互相覆盖 `src/generated/resources`）→ 生成资源按节点分目录（1.21.1 用 `src/generated/resources-1.21.1`）；R9（探针端口冲突）→ 1.21.1 客户端用 **48792**。
+
+**门禁实测：**
+
+| 项 | 结果 |
+|---|---|
+| 两个节点配置 | `./gradlew projects` 列出 `:1.20.1-forge` 与 `:1.21.1-neoforge` |
+| 1.21.1 依赖解析 | `compileClasspath` 全部解析成功：NeoForge 21.1.259、`dev.tc4port:thaumcraft-neoforge:0.1.0-20736`、GTCEu 7.0.2、JEI 19.57.0.451、Jade 15.10.6+neoforge、KubeJS 2101.7.2-build.377 |
+| 按节点清单校验 | 1.21.1 → `Verified 2 TC4R artifacts ... via DEPENDENCIES.1.21.1-neoforge.json`；1.20.1 → `Verified 4 ... via DEPENDENCIES.json` |
+| 1.21.1 `compileJava` | **202 个错误，全部是 `net.minecraftforge.*` 包不存在 / 符号找不到** —— 正是 S2/S3 要处理的 Forge→NeoForge 面。Stonecutter 对 1.21.1 节点的源码生成也正常 |
+| 1.20.1 回归 | `test` 全绿、`jar` 正常产出，**零回归** |
+
+**与原门禁的差异：** 原门禁写的是"`buildAndCollect` 能产出两个 jar"。实际做不到 —— 1.21.1 编译不过就没有 jar。可断言的是**管线结构成立**：节点配置、依赖解析、按节点工件校验、Stonecutter 生成全部跑通，编译错误集合正好落在预期的 Forge→NeoForge 面上。真正的"两个 jar"要等 S2/S3 把源码迁完。
+
 ### S2：机械层（第 1 层替换）
 
 - 写替换规则表，跑 1.21.1 节点的编译，把"只剩 53 个结构性文件报错"作为完成判据。
