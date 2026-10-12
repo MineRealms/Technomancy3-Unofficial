@@ -1,33 +1,11 @@
 name: Build
 
-# Forge 1.20.1 CI: the data-pack validator always runs; the Forge build and the GameTest
-# batches run once the local TC4R repository has been made available (see below).
-#
-# ---------------------------------------------------------------------------------------
-# The TC4R dependency
-# ---------------------------------------------------------------------------------------
-# `dev.tc4port:thaumcraft-forge` is a mandatory *compile* dependency and it is not publicly
-# redistributable. local-repo/README.md and local-repo/DEPENDENCIES.json both describe it as
-# a user-supplied local build, and .gitignore keeps local-repo/** out of Git apart from the
-# manifest, so a GitHub-hosted runner cannot resolve it on its own. The project also refuses
-# to compile without it: `compileJava` depends on `verifyLocalDependencies`, which hashes
-# every artifact named in local-repo/DEPENDENCIES.json.
-#
-# To switch `build` and `gametest` on, put the local-repo tree somewhere only this repository
-# can read (a private maven, a private release asset, an object store) and configure:
-#
-#   Repository variable  TC4R_ARCHIVE_URL    URL of a .tar.gz whose root holds the
-#                                            local-repo contents, i.e. dev/tc4port/...
-#   Repository secret    TC4R_ARCHIVE_TOKEN  optional bearer token for that URL
-#
-# The archive must match local-repo/DEPENDENCIES.json for the revision in gradle.properties;
-# `verifyLocalDependencies` fails the build when it does not. Until TC4R_ARCHIVE_URL is set,
-# both jobs are reported as skipped rather than failing, and `validate` still runs.
-
+# TC4R is supplied privately. The archive must contain both nodes' artifacts under
+# dev/tc4port and match the checked-in SHA-256 manifests; it is never uploaded.
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [main, multiversion]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -40,83 +18,88 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate data pack
+    name: Validate canonical data
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      # Catches the three data-pack mistakes that do not fail a build: a JSON syntax error,
-      # a misspelled field, and a misspelled id. The id half needs an inventory dumped by
-      # runGameTestServer, so it reports SKIPPED here instead of passing silently.
-      - name: Validate the data pack against the TC4R schemas
-        run: python tools/validate_technom_data.py
+      - run: python tools/validate_technom_data.py
 
   build:
-    name: Build (JUnit + reobfJar)
+    name: Build (${{ matrix.node }})
     needs: validate
     if: ${{ vars.TC4R_ARCHIVE_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [1.20.1-forge, 1.21.1-neoforge]
     steps:
-      - name: Forge setup
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Set up toolchains and private dependencies
         uses: ./.github/actions/forge-setup
         with:
           tc4r-archive-url: ${{ vars.TC4R_ARCHIVE_URL }}
           tc4r-archive-token: ${{ secrets.TC4R_ARCHIVE_TOKEN }}
-
-      # Runs the JUnit suite and produces the reobfuscated mod jar; `jar` is finalised by
-      # `reobfJar`, so build/libs holds the artifact a pack would actually load.
-      - name: Build
-        run: ./gradlew build --console=plain --no-daemon
-
-      # Forge 1.20.1 has no `[[mixins]]` block in mods.toml; the only registration point is
-      # the MixinConfigs manifest attribute, so a jar that lost either is not loadable.
-      - name: Check the jar is a loadable Forge mod
-        run: |
-          set -euo pipefail
-          jars=(build/libs/*.jar)
-          jar="${jars[0]}"
-          echo "Checking $jar"
-          unzip -l "$jar" | grep -q 'META-INF/mods.toml'
-          unzip -p "$jar" META-INF/MANIFEST.MF | grep -q 'MixinConfigs'
-
-      - name: Upload the mod jar
+      - name: Build, unit test and inspect release jar
+        run: ./gradlew :${{ matrix.node }}:build --console=plain --no-daemon
+      - name: Validate target data
+        run: python tools/validate_technom_data.py --node ${{ matrix.node }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: technom-${{ matrix.node }}
+          path: versions/${{ matrix.node }}/build/libs/*.jar
+          if-no-files-found: error
+      - name: Save test reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: technom-jar
-          path: build/libs/*.jar
-          if-no-files-found: error
+          name: junit-${{ matrix.node }}
+          path: versions/${{ matrix.node }}/build/reports/tests/
 
   gametest:
-    name: GameTest (${{ matrix.name }})
+    name: GameTest (${{ matrix.node }}, ${{ matrix.runtime }})
     needs: build
     if: ${{ vars.TC4R_ARCHIVE_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
-      # All three runtimes are part of the acceptance, so report every one that breaks.
       fail-fast: false
       matrix:
         include:
-          - name: default
-            gradle-args: ''
-          - name: with-gtceu
-            gradle-args: '-PwithGtceu=true'
-          - name: without-botania
-            gradle-args: '-PwithBotania=false'
+          - node: 1.20.1-forge
+            runtime: default
+            args: ''
+          - node: 1.20.1-forge
+            runtime: gtceu
+            args: '-PwithGtceu=true'
+          - node: 1.20.1-forge
+            runtime: no-botania
+            args: '-PwithBotania=false'
+          - node: 1.21.1-neoforge
+            runtime: default
+            args: ''
+          - node: 1.21.1-neoforge
+            runtime: kubejs
+            args: '-PwithKubejs=true'
     steps:
-      - name: Forge setup
-        uses: ./.github/actions/forge-setup
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: ./.github/actions/forge-setup
         with:
           tc4r-archive-url: ${{ vars.TC4R_ARCHIVE_URL }}
           tc4r-archive-token: ${{ secrets.TC4R_ARCHIVE_TOKEN }}
-
-      - name: Run the GameTest server
-        run: ./gradlew runGameTestServer --console=plain --no-daemon ${{ matrix.gradle-args }}
+      - name: Run isolated game tests
+        run: ./gradlew :${{ matrix.node }}:runGameTestServer --console=plain --no-daemon ${{ matrix.args }}
+      - name: Validate against the target's live inventory
+        if: matrix.runtime == 'default'
+        run: python tools/validate_technom_data.py --node ${{ matrix.node }} --require-inventory

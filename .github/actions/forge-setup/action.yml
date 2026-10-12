@@ -1,7 +1,7 @@
 name: Forge setup
 description: >-
-  Checks out the repository, installs JDK 17 and Gradle, and lays down the
-  locally-supplied TC4R maven repository that every Forge build task needs.
+  Installs JDK 17 and 21 plus Gradle, and lays down both targets' privately supplied
+  TC4R artifacts. The caller checks out the repository before using this action.
 
 # `dev.tc4port:thaumcraft-forge` is a mandatory compile dependency (build.gradle) and it is
 # not publicly redistributable: local-repo/README.md and local-repo/DEPENDENCIES.json both
@@ -24,14 +24,17 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Check out
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
+    - name: Set up JDK 17 toolchain
       uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: '17'
+
+    - name: Set up JDK 21 for Gradle and NeoForge
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
 
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v4
