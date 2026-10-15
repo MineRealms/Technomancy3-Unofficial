@@ -61,12 +61,13 @@ public final class Technomancy {
         // part of the two registries above.
         TechnomFluids.FLUID_TYPES.register(modBus);
         TechnomFluids.FLUIDS.register(modBus);
-        // Optional Botania module: only registered when Botania is loaded, because its blocks and
-        // block entities link the Botania API at class load.
+        // Botania module: Botania is a hard dependency (mods.toml) and its blocks and block
+        // entities link the Botania API at class load, so it always registers. Registering it
+        // conditionally would leave its loot tables naming items that do not exist, and Forge
+        // 1.20.1 resolves loot-table item names at parse time. The NeoForge node has no Botania
+        // port, so the whole module (and this call) is stripped there.
         //? if forge {
-        if (theflogat.technomancy.compat.botania.BotaniaPresence.isLoaded()) {
-            theflogat.technomancy.compat.botania.BotaniaContent.install();
-        }
+        theflogat.technomancy.compat.botania.BotaniaContent.install();
         //?}
         TechnomCreativeTabs.TABS.register(modBus);
         // S2 machines and storage: the processors have a menu.

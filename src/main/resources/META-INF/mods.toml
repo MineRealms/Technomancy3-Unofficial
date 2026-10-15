@@ -38,3 +38,10 @@ mandatory=false
 versionRange="[${gtceu_version}]"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="botania"
+mandatory=true
+versionRange="[${botania_version},)"
+ordering="AFTER"
+side="BOTH"

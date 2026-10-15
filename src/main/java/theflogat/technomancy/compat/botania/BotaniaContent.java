@@ -28,11 +28,13 @@ import theflogat.technomancy.common.tiles.machines.BoProcessorBlockEntity;
  * <p>Every class this touches links the Botania API at class load (the four block entities
  * implement Botania mana interfaces, and {@link ManaExchangerBlock} implements Botania's
  * {@code PoolOverlayProvider}), so nothing here may be referenced from a class that loads without
- * Botania. {@link theflogat.technomancy.Technomancy} calls {@link #install()} behind
- * {@link BotaniaPresence}, which is the only Botania entry point common code knows.</p>
+ * Botania. {@link theflogat.technomancy.Technomancy} calls {@link #install()} unconditionally on
+ * the Forge node: Botania is a hard dependency there, so the API is always present. The NeoForge
+ * node has no Botania port and strips the whole module.</p>
  *
- * <p>The fields stay null when Botania is absent; the blocks, block items and block entity types
- * are simply never registered, and the gated recipes never load.</p>
+ * <p>Registering conditionally would break the block loot tables, which name these items by id:
+ * Forge 1.20.1 resolves a loot table's item names at parse time, so a table for an unregistered
+ * item is a hard parse error rather than a no-op.</p>
  */
 public final class BotaniaContent {
 
@@ -53,7 +55,7 @@ public final class BotaniaContent {
     private BotaniaContent() {
     }
 
-    /** Registers everything of the module. Only call this when {@link BotaniaPresence} is true. */
+    /** Registers everything of the module. Botania is a hard dependency, so this always runs. */
     public static void install() {
         FLOWER_DYNAMO = block("flower_dynamo",
                 () -> new FlowerDynamoBlock(BlockBehaviour.Properties.of()

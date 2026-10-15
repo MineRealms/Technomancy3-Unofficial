@@ -17,7 +17,6 @@ base { archivesName = "${mod_id}-${minecraft_version}-${mod_loader}" }
 java.toolchain.languageVersion = JavaLanguageVersion.of(java_version.toInteger())
 
 def withGtceu = providers.gradleProperty('withGtceu').map { it.toBoolean() }.getOrElse(false)
-def withBotania = providers.gradleProperty('withBotania').map { it.toBoolean() }.getOrElse(true)
 def withJade = providers.gradleProperty('withJade').map { it.toBoolean() }.getOrElse(true)
 def withKubejs = providers.gradleProperty('withKubejs').map { it.toBoolean() }.getOrElse(false)
 def tc4Repository = file(providers.gradleProperty('tc4Repository')
@@ -157,18 +156,15 @@ if (isForge) {
             // LDLib, Registrate and Configuration are embedded by GTCEu.
         }
 
-        // Optional Botania module: the API is always on the compile path, the runtime only in dev.
+        // Botania module (Forge node only): the API is always on the compile path and the mod itself
+        // on the dev runtime, because Botania is a hard dependency there. The machines register
+        // unconditionally and reference the API at class load, so a runtime without Botania would not
+        // even parse the loot tables. Botania declares Patchouli (and Curios, already above) as
+        // mandatory too, so both must be on the dev runtime or the game refuses to start. The
+        // NeoForge node has no Botania port and excludes the module from the source set entirely.
         modCompileOnly("vazkii.botania:Botania:${botania_version}")
-        // The Botania machines register unconditionally and reference the API at class load, so the
-        // development runtime needs the mod itself. It is not bundled into the jar; players only get
-        // it if their pack ships Botania. Botania declares Patchouli (and Curios, already above) as
-        // mandatory, so both must be on the dev runtime or the game refuses to start. Set
-        // -PwithBotania=false to run the development game without Botania and exercise the
-        // absent-safety gate.
-        if (withBotania) {
-            modRuntimeOnly("vazkii.botania:Botania:${botania_version}") { transitive = false }
-            modRuntimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}") { transitive = false }
-        }
+        modRuntimeOnly("vazkii.botania:Botania:${botania_version}") { transitive = false }
+        modRuntimeOnly("vazkii.patchouli:Patchouli:${patchouli_version}") { transitive = false }
         // JEI: compileOnly for the plugin, runtimeOnly so dev shows recipes.
         modCompileOnly("mezz.jei:jei-1.20.1-forge:${jei_version}")
         modRuntimeOnly("mezz.jei:jei-1.20.1-forge:${jei_version}")
@@ -204,7 +200,7 @@ if (isForge) {
                 forge_version_range: forge_version_range, loader_version_range: loader_version_range,
                 mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
                 mod_authors: mod_authors, mod_description: mod_description,
-                thaumcraft_runtime_version: thaumcraft_runtime_version, gtceu_version: gtceu_version]
+                thaumcraft_runtime_version: thaumcraft_runtime_version, gtceu_version: gtceu_version, botania_version: botania_version]
         inputs.properties values
         filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand values }
     }
