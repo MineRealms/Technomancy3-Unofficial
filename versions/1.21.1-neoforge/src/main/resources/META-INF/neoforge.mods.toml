@@ -28,7 +28,7 @@ side="BOTH"
 [[dependencies.${mod_id}]]
 modId="thaumcraft"
 type="required"
-versionRange="[${thaumcraft_runtime_version}]"
+versionRange="[${thaumcraft_runtime_version},)"
 ordering="AFTER"
 side="BOTH"
 
