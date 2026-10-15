@@ -51,11 +51,10 @@ public final class Technomancy {
         // part of the two registries above.
         TechnomFluids.FLUID_TYPES.register(modBus);
         TechnomFluids.FLUIDS.register(modBus);
-        // Optional Botania module: only registered when Botania is loaded, because its blocks and
-        // block entities link the Botania API at class load.
-        if (theflogat.technomancy.compat.botania.BotaniaPresence.isLoaded()) {
-            theflogat.technomancy.compat.botania.BotaniaContent.install();
-        }
+        // Botania module: Botania is a hard dependency (mods.toml) and its blocks and block
+        // entities link the Botania API at class load, so it always registers. Registering it
+        // conditionally would leave its loot tables naming items that do not exist.
+        theflogat.technomancy.compat.botania.BotaniaContent.install();
         TechnomCreativeTabs.TABS.register(modBus);
         // S2 machines and storage: the processors have a menu.
         TechnomMenus.TYPES.register(modBus);

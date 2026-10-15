@@ -11,7 +11,6 @@ import theflogat.technomancy.Technomancy;
 import theflogat.technomancy.common.essentia.fuel.EssentiaFuelLoader;
 import theflogat.technomancy.common.essentia.fuel.EssentiaFuelTable;
 import theflogat.technomancy.common.registry.TechnomBlocks;
-import theflogat.technomancy.compat.botania.BotaniaPresence;
 
 /**
  * JEI integration.
@@ -74,16 +73,11 @@ public final class TechnomJeiPlugin implements IModPlugin {
      * item, and JEI decides how to present it.</p>
      *
      * <p>Rebuilt on every recipe reload along with the fuel pages, so a language change or a
-     * {@code /reload} is picked up without a restart. The Botania pages are skipped rather than
-     * registered empty when the module is absent: their items were never registered, so there is
-     * nothing for JEI to hang the page off.</p>
+     * {@code /reload} is picked up without a restart. The Botania pages are registered like any
+     * other: Botania is a hard dependency, so their items always exist.</p>
      */
     private static void registerUsagePages(IRecipeRegistration registration) {
-        boolean botania = BotaniaPresence.isLoaded();
         for (JeiUsagePages.Page page : JeiUsagePages.PAGES) {
-            if (page.botania() && !botania) {
-                continue;
-            }
             registration.addIngredientInfo(page.item().get(),
                     Component.translatable(JeiUsagePages.PREFIX + page.path()));
         }

@@ -14,9 +14,9 @@ import vazkii.botania.api.mana.ManaPool;
  * The Botania-side body of {@link ManaExchangerGameTests}.
  *
  * <p>This class is deliberately not a {@code @GameTestHolder}: it links Botania at class load, so
- * it must only ever be loaded when Botania is present. The holder checks
- * {@code BotaniaPresence} and loads this class reflectively, which keeps the holder's own method
- * descriptors free of Botania types and lets the whole batch load without Botania.</p>
+ * it is only ever loaded reflectively, which keeps the holder's own method descriptors free of
+ * Botania types. A build without the Botania module (the NeoForge node excludes it) simply has no
+ * class to load and the batch passes as a no-op.</p>
  */
 public final class ManaExchangerBotaniaTests {
 

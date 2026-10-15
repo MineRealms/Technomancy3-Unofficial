@@ -5,7 +5,6 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import theflogat.technomancy.Technomancy;
-import theflogat.technomancy.compat.botania.BotaniaPresence;
 
 /**
  * The Mana Exchanger against a real Botania mana pool: the pool must sit directly on top, and a
@@ -14,8 +13,9 @@ import theflogat.technomancy.compat.botania.BotaniaPresence;
  * <p>This holder stays free of Botania types on purpose. Forge resolves every method descriptor of
  * a {@code @GameTestHolder} class when it registers the batch, so a {@code ManaPool} return type
  * anywhere in here would make the mod fail to start without Botania. The real bodies live in
- * {@link ManaExchangerBotaniaTests}, loaded reflectively only when Botania is present; without it
- * the three tests pass as no-ops.</p>
+ * {@link ManaExchangerBotaniaTests}, loaded reflectively; a build that does not include them (the
+ * NeoForge node excludes the Botania module entirely) simply has no class to load, which is a
+ * no-op pass rather than a failure.</p>
  */
 @GameTestHolder(Technomancy.MOD_ID)
 @PrefixGameTestTemplate(false)
@@ -41,14 +41,13 @@ public final class ManaExchangerGameTests {
     }
 
     private static void run(GameTestHelper helper, String method) {
-        if (!BotaniaPresence.isLoaded()) {
-            helper.succeed();
-            return;
-        }
         try {
             Class.forName("theflogat.technomancy.gametest.ManaExchangerBotaniaTests")
                     .getMethod(method, GameTestHelper.class)
                     .invoke(null, helper);
+        } catch (ClassNotFoundException exception) {
+            // The Botania module is not part of this build (NeoForge has no Botania port).
+            helper.succeed();
         } catch (ReflectiveOperationException exception) {
             helper.fail("Mana exchanger test " + method + " could not be invoked: " + exception);
         }
