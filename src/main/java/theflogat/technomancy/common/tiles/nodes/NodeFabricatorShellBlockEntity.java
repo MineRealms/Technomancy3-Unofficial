@@ -99,6 +99,11 @@ public final class NodeFabricatorShellBlockEntity extends BlockEntity implements
     //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+
         NodeFabricatorBlockEntity machine = controller();
         if (machine != null) {
             LazyOptional<T> view = machine.energy().getCapability(cap, side);

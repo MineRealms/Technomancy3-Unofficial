@@ -324,6 +324,11 @@ public final class FluxLampBlockEntity extends BlockEntity implements EssentiaTr
     //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+
         if (cap == ForgeCapabilities.FLUID_HANDLER) {
             return fluidView.cast();
         }

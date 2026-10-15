@@ -336,6 +336,11 @@ public final class EnergyCondenserBlockEntity extends BlockEntity
     //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }

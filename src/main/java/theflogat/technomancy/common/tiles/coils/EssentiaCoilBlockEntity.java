@@ -457,4 +457,19 @@ public final class EssentiaCoilBlockEntity extends CoilBlockEntity implements Es
             Technomancy.LOGGER.warn("Essentia coil at {} had an unreadable filter {}", worldPosition, saved);
         }
     }
+
+    //? if forge {
+    // TC4R 20740 exposes essentia transport as a capability and EssentiaApi.transport resolves
+    // peers only through it, so a foreign machine must answer the query itself.
+    @Override
+    public <T> net.minecraftforge.common.util.LazyOptional<T> getCapability(
+            net.minecraftforge.common.capabilities.Capability<T> cap,
+            @javax.annotation.Nullable net.minecraft.core.Direction side) {
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+        return super.getCapability(cap, side);
+    }
+    //?}
 }

@@ -16,7 +16,7 @@ import dev.tc4port.thaumcraft.api.node.AuraNodeView;
 import dev.tc4port.thaumcraft.api.node.NodeApi;
 import dev.tc4port.thaumcraft.api.node.NodeStateChangeResult;
 import dev.tc4port.thaumcraft.api.node.NodeVis;
-import dev.tc4port.thaumcraft.worldgen.BiomeAuraProfile;
+import dev.tc4port.thaumcraft.worldgen.BiomeAuraValues;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -502,7 +502,7 @@ public final class NodeFabricatorBlockEntity extends BlockEntity implements Esse
 
     /** {@code BiomeHandler.getRandomBiomeTag}, with the original's random-primal fallback. */
     private AspectId pickAspect(ServerLevel level) {
-        AspectId biome = BiomeAuraProfile.randomAspect(level.getBiome(nodePosition()), level.getRandom());
+        AspectId biome = BiomeAuraValues.randomAspect(level.getBiome(nodePosition()), level.getRandom());
         if (biome != null) {
             return biome;
         }
@@ -772,6 +772,11 @@ public final class NodeFabricatorBlockEntity extends BlockEntity implements Esse
     //? if forge {
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+
         LazyOptional<T> view = energy.getCapability(cap, side);
         return view.isPresent() ? view : super.getCapability(cap, side);
     }
