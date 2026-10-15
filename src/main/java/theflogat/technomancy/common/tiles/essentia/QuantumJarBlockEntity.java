@@ -103,6 +103,11 @@ public final class QuantumJarBlockEntity extends BlockEntity
         return filters.isEmpty() ? null : filters.iterator().next();
     }
 
+    @Override
+    public int capacity() {
+        return CAPACITY;
+    }
+
     public int amount() {
         return store.total();
     }

@@ -83,6 +83,12 @@ public final class CreativeJarBlockEntity extends BlockEntity
         return null;
     }
 
+    /** Unbounded: the creative jar is an endless source, so it reports no real capacity. */
+    @Override
+    public int capacity() {
+        return Integer.MAX_VALUE;
+    }
+
     @Override
     public boolean isConnectable(Direction face) {
         return CreativeJarContract.isOutputFace(face);
