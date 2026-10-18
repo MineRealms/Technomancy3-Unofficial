@@ -1,0 +1,50 @@
+{
+  "focus_profiles": [
+    {
+      "focus": "technom:fusion_focus",
+      "color": 16733525,
+      "per_tick": false,
+      "base_cost": {
+        "aer": 3000,
+        "terra": 3000,
+        "ignis": 3000,
+        "aqua": 3000,
+        "ordo": 3000,
+        "perditio": 3000
+      },
+      "ranks": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "pipeline": {
+        "modules": [
+          "thaumcraft:focus_actions"
+        ],
+        "bindings": [
+          {
+            "id": "technom:actions/cast",
+            "stage": "thaumcraft:cast/step",
+            "handler": "thaumcraft:focus_actions",
+            "priority": -100
+          },
+          {
+            "id": "technom:actions/block",
+            "stage": "thaumcraft:use/before_formation",
+            "handler": "thaumcraft:focus_actions",
+            "priority": -100
+          },
+          {
+            "id": "technom:actions/input",
+            "stage": "thaumcraft:client/input_after_block",
+            "handler": "thaumcraft:focus_actions",
+            "priority": -100
+          }
+        ],
+        "casts": {}
+      }
+    }
+  ]
+}

@@ -75,6 +75,9 @@ public final class Technomancy {
         theflogat.technomancy.common.network.TechnomNetwork.register(modBus);
 
         modBus.addListener(this::commonSetup);
+        // S2 nodes, wands and fusion: the focus profiles ship in their own pack so the 20740 and 20744
+        // catalog shapes can both be served (20740 needs per_tick, 20744 rejects it).
+        modBus.addListener(theflogat.technomancy.common.focus.FocusCatalogPack::onAddPackFinders);
         // Server-side data: the aspect fuel table is a data pack, so it reloads with /reload.
         MinecraftForge.EVENT_BUS.addListener(EssentiaFuelLoader::onAddReloadListener);
         // S2 nodes, wands and fusion: wand charging (inventory pass + technoturge FE capability).
