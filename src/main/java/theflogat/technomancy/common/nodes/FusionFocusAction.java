@@ -11,8 +11,9 @@ import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActivation;
-import dev.tc4port.thaumcraft.api.focus.action.FocusCastAnimation;
+import dev.tc4port.thaumcraft.api.focus.action.FocusCastMode;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
 import dev.tc4port.thaumcraft.api.node.AuraNodeState;
 import dev.tc4port.thaumcraft.api.node.AuraNodeView;
 import dev.tc4port.thaumcraft.api.node.NodeApi;
@@ -80,8 +81,8 @@ public final class FusionFocusAction {
         }
         registration = FocusActionApi.register(
                 new FocusActionSpec(ACTION_ID, new FocusActionTarget.Focus(FusionFocusItem.FOCUS_ID),
-                        Set.of(FocusActivation.USE_BLOCK), ResearchRequirement.required(RESEARCH), RANGE, 0,
-                        FocusCastAnimation.INSTANT, ActionPresentationAudience.NONE),
+                        FocusInput.SECONDARY, Set.of(FocusTargetKind.BLOCK), FocusCastMode.INSTANT,
+                        ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.NONE),
                 FusionFocusAction::handle);
     }
 
