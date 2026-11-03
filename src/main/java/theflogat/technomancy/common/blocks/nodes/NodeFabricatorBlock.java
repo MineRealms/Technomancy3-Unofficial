@@ -31,7 +31,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
-import dev.tc4port.thaumcraft.api.wand.WandApi;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseContext;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseResult;
 import dev.tc4port.thaumcraft.common.WandInteractionTarget;
 import theflogat.technomancy.common.registry.TechnomBlockEntities;
 import theflogat.technomancy.common.registry.TechnomItems;
@@ -153,6 +154,36 @@ public class NodeFabricatorBlock extends BaseEntityBlock implements WandInteract
     }
     *///?}
 
+    /**
+     * TC4R 20759 dispatches wand right-clicks on {@link WandInteractionTarget} blocks
+     * through the wand's WANDABLE stage instead of native block activation, so the
+     * node-building branch moved here from {@link #use}.
+     */
+    @Override
+    public FocusUseResult useWand(FocusUseContext context) {
+        Player player = context.player();
+        Level level = player.level();
+        if (!(context.hit() instanceof BlockHitResult hit)) {
+            return FocusUseResult.PASS;
+        }
+        BlockPos pos = hit.getBlockPos();
+        if (!(level.getBlockEntity(pos) instanceof NodeFabricatorBlockEntity machine)) {
+            return FocusUseResult.PASS;
+        }
+        // The original's onWandRightClick: a wand click builds a node, but a crouching one
+        // is left to the installed focus.
+        if (player.isSecondaryUseActive()) {
+            return FocusUseResult.PASS;
+        }
+        if (level.isClientSide) {
+            return FocusUseResult.SUCCESS;
+        }
+        boolean started = machine.startCreation((net.minecraft.server.level.ServerLevel) level);
+        if (started) {
+            level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 0.8F, 1.0F);
+        }
+        return started ? FocusUseResult.CONSUME : FocusUseResult.PASS;
+    }
     //? if forge {
     @Override
     //?}
@@ -162,21 +193,6 @@ public class NodeFabricatorBlock extends BaseEntityBlock implements WandInteract
             return InteractionResult.PASS;
         }
         ItemStack held = player.getItemInHand(hand);
-        if (WandApi.view(held).isPresent()) {
-            // The original's onWandRightClick: a wand click builds a node, but a crouching one
-            // is left to the installed focus.
-            if (player.isSecondaryUseActive()) {
-                return InteractionResult.PASS;
-            }
-            if (level.isClientSide) {
-                return InteractionResult.SUCCESS;
-            }
-            boolean started = machine.startCreation((net.minecraft.server.level.ServerLevel) level);
-            if (started) {
-                level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 0.8F, 1.0F);
-            }
-            return started ? InteractionResult.CONSUME : InteractionResult.PASS;
-        }
         if (held.is(TechnomItems.POTENCY_GEM.get())) {
             if (machine.isBoosted()) {
                 return InteractionResult.PASS;
