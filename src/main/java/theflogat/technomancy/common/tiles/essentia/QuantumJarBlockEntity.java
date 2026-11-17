@@ -5,8 +5,8 @@ import dev.tc4port.thaumcraft.api.aspect.AspectAmounts;
 import dev.tc4port.thaumcraft.api.aspect.AspectApi;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaApi;
-import dev.tc4port.thaumcraft.api.essentia.EssentiaJarView;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaSource;
+import dev.tc4port.thaumcraft.api.essentia.EssentiaStorageView;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaTransferMode;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaTransport;
 import java.util.List;
@@ -39,7 +39,7 @@ import theflogat.technomancy.common.registry.TechnomBlockEntities;
  * two things the original actually overrode: the capacity and the suction formula.</p>
  */
 public final class QuantumJarBlockEntity extends BlockEntity
-        implements EssentiaTransport, EssentiaSource, EssentiaJarView {
+        implements EssentiaTransport, EssentiaSource, EssentiaStorageView {
 
     /** {@code TileEssentiaContainer.max}: ten warded jars in one block. */
     public static final int CAPACITY = 640;
@@ -67,6 +67,11 @@ public final class QuantumJarBlockEntity extends BlockEntity
     /** Jar capacity exposed by TC4R 20736; also available on the legacy implementation. */
     public int capacity() {
         return CAPACITY;
+    }
+
+    @Override
+    public int essentiaCapacity() {
+        return capacity();
     }
 
     public QuantumJarBlockEntity(BlockPos pos, BlockState state) {
@@ -106,6 +111,12 @@ public final class QuantumJarBlockEntity extends BlockEntity
     public AspectId filter() {
         Set<AspectId> filters = store.filters();
         return filters.isEmpty() ? null : filters.iterator().next();
+    }
+
+    @Nullable
+    @Override
+    public AspectId essentiaFilter() {
+        return filter();
     }
 
     public int amount() {
@@ -407,6 +418,10 @@ public final class QuantumJarBlockEntity extends BlockEntity
         if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
             return net.minecraftforge.common.util.LazyOptional.of(
                     () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.STORAGE) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaStorageView) this).cast();
         }
         return super.getCapability(cap, side);
     }

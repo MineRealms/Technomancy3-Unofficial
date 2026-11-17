@@ -3,8 +3,8 @@ package theflogat.technomancy.common.tiles.essentia;
 import dev.tc4port.thaumcraft.api.aspect.AspectAmounts;
 import dev.tc4port.thaumcraft.api.aspect.AspectApi;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
-import dev.tc4port.thaumcraft.api.essentia.EssentiaJarView;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaSource;
+import dev.tc4port.thaumcraft.api.essentia.EssentiaStorageView;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaTransferMode;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaTransport;
 import javax.annotation.Nullable;
@@ -35,7 +35,7 @@ import theflogat.technomancy.common.registry.TechnomBlockEntities;
  * left over), which is kept: this is a source, not a void.</p>
  */
 public final class CreativeJarBlockEntity extends BlockEntity
-        implements EssentiaTransport, EssentiaSource, EssentiaJarView {
+        implements EssentiaTransport, EssentiaSource, EssentiaStorageView {
 
     private static final String TAG_ASPECT = "aspect";
 
@@ -45,6 +45,11 @@ public final class CreativeJarBlockEntity extends BlockEntity
     /** Jar capacity exposed by TC4R 20736; also available on the legacy implementation. */
     public int capacity() {
         return Integer.MAX_VALUE;
+    }
+
+    @Override
+    public int essentiaCapacity() {
+        return capacity();
     }
 
     public CreativeJarBlockEntity(BlockPos pos, BlockState state) {
@@ -83,9 +88,14 @@ public final class CreativeJarBlockEntity extends BlockEntity
 
     /** No label: the configured aspect is the contents, not a filter. */
     @Nullable
-    @Override
     public AspectId filter() {
         return null;
+    }
+
+    @Nullable
+    @Override
+    public AspectId essentiaFilter() {
+        return filter();
     }
 
     @Override
@@ -229,6 +239,10 @@ public final class CreativeJarBlockEntity extends BlockEntity
         if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.TRANSPORT) {
             return net.minecraftforge.common.util.LazyOptional.of(
                     () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaTransport) this).cast();
+        }
+        if (cap == dev.tc4port.thaumcraft.api.essentia.EssentiaCapabilities.STORAGE) {
+            return net.minecraftforge.common.util.LazyOptional.of(
+                    () -> (dev.tc4port.thaumcraft.api.essentia.EssentiaStorageView) this).cast();
         }
         return super.getCapability(cap, side);
     }
