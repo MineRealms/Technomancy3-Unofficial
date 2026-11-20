@@ -1,6 +1,5 @@
 package theflogat.technomancy.common.wands;
 
-import dev.tc4port.thaumcraft.api.wand.WandApi;
 import dev.tc4port.thaumcraft.api.wand.WandMaterialId;
 import dev.tc4port.thaumcraft.api.wand.WandView;
 import java.util.Optional;
@@ -34,7 +33,7 @@ public final class TechnomWandRods {
     }
 
     public static Optional<WandView> view(ItemStack stack) {
-        return stack.isEmpty() ? Optional.empty() : WandApi.view(stack);
+        return stack.isEmpty() ? Optional.empty() : WandVisCompat.wandView(stack);
     }
 
     public static boolean hasRod(ItemStack stack, WandMaterialId rod) {

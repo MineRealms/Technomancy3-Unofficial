@@ -1,7 +1,7 @@
 package theflogat.technomancy.common.wands;
 
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
-import java.util.EnumMap;
+import dev.tc4port.thaumcraft.api.aspect.AspectId;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -29,9 +29,9 @@ public final class WandCharge {
     }
 
     /** Free room per channel in centivis, never negative. */
-    public static Map<VisChannel, Integer> room(Map<VisChannel, Integer> current, Map<VisChannel, Integer> capacity) {
-        EnumMap<VisChannel, Integer> room = new EnumMap<>(VisChannel.class);
-        for (VisChannel channel : VisChannel.values()) {
+    public static Map<AspectId, Integer> room(Map<AspectId, Integer> current, Map<AspectId, Integer> capacity) {
+        LinkedHashMap<AspectId, Integer> room = new LinkedHashMap<>();
+        for (AspectId channel : WandVisCompat.PRIMALS) {
             int free = capacity.getOrDefault(channel, 0) - current.getOrDefault(channel, 0);
             room.put(channel, Math.max(0, free));
         }
@@ -39,7 +39,7 @@ public final class WandCharge {
     }
 
     /** Total room in Q, saturating. */
-    public static long roomQ(Map<VisChannel, Integer> room) {
+    public static long roomQ(Map<AspectId, Integer> room) {
         long centivis = 0;
         for (int free : room.values()) {
             centivis += Math.max(0, free);
@@ -55,10 +55,10 @@ public final class WandCharge {
      * @param perChannelLimit cap per channel for this pass, in centivis
      * @return centivis to insert per channel; the cost is their sum times {@link #Q_PER_CENTIVIS}
      */
-    public static Map<VisChannel, Integer> plan(Map<VisChannel, Integer> room, long bufferQ, int perChannelLimit) {
-        EnumMap<VisChannel, Integer> plan = new EnumMap<>(VisChannel.class);
-        EnumMap<VisChannel, Integer> left = new EnumMap<>(VisChannel.class);
-        for (VisChannel channel : VisChannel.values()) {
+    public static Map<AspectId, Integer> plan(Map<AspectId, Integer> room, long bufferQ, int perChannelLimit) {
+        LinkedHashMap<AspectId, Integer> plan = new LinkedHashMap<>();
+        LinkedHashMap<AspectId, Integer> left = new LinkedHashMap<>();
+        for (AspectId channel : WandVisCompat.PRIMALS) {
             left.put(channel, Math.max(0, Math.min(room.getOrDefault(channel, 0), perChannelLimit)));
         }
         long affordable = Math.max(0, bufferQ) / Q_PER_CENTIVIS;
@@ -73,7 +73,7 @@ public final class WandCharge {
                 break;
             }
             long share = Math.max(1, affordable / open);
-            for (VisChannel channel : VisChannel.values()) {
+            for (AspectId channel : WandVisCompat.PRIMALS) {
                 int free = left.get(channel);
                 if (free <= 0 || affordable <= 0) {
                     continue;
@@ -88,7 +88,7 @@ public final class WandCharge {
     }
 
     /** Sum of a centivis map. */
-    public static long total(Map<VisChannel, Integer> centivis) {
+    public static long total(Map<AspectId, Integer> centivis) {
         long sum = 0;
         for (int value : centivis.values()) {
             sum += value;

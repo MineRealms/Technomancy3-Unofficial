@@ -1,5 +1,6 @@
 package theflogat.technomancy.common.items;
 
+import theflogat.technomancy.common.wands.WandVisCompat;
 import dev.tc4port.thaumcraft.api.focus.FocusApi;
 import dev.tc4port.thaumcraft.api.focus.FocusId;
 import dev.tc4port.thaumcraft.api.focus.FocusIdentityItem;
@@ -128,7 +129,7 @@ public class FusionFocusItem extends Item implements FocusIdentityItem {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack focus = player.getItemInHand(hand);
         InteractionHand wandHand = hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-        if (!dev.tc4port.thaumcraft.api.wand.WandApi.view(player.getItemInHand(wandHand)).isPresent()) {
+        if (!WandVisCompat.wandView(player.getItemInHand(wandHand)).isPresent()) {
             return InteractionResultHolder.pass(focus);
         }
         if (!level.isClientSide && player instanceof net.minecraft.server.level.ServerPlayer server) {

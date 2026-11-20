@@ -1,6 +1,6 @@
 package theflogat.technomancy.gametest;
 
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
+import dev.tc4port.thaumcraft.api.aspect.BuiltinAspects;
 import dev.tc4port.thaumcraft.api.wand.WandApi;
 import dev.tc4port.thaumcraft.api.wand.WandMaterialId;
 import dev.tc4port.thaumcraft.api.wand.WandPartApi;
@@ -22,6 +22,7 @@ import theflogat.technomancy.common.registry.TechnomItems;
 import theflogat.technomancy.common.wands.TechnomWandRods;
 import theflogat.technomancy.common.wands.TechnomWrench;
 import theflogat.technomancy.common.wands.WandCharge;
+import theflogat.technomancy.common.wands.WandVisCompat;
 import theflogat.technomancy.common.wands.WandChargeEvents;
 
 /**
@@ -81,13 +82,13 @@ public final class WandChargeGameTests {
         TechnomWandRods.setCharge(wand, budget);
 
         helper.assertTrue(WandChargeEvents.chargeWand(player, wand), "the charging pass did nothing");
-        Optional<WandView> view = WandApi.view(wand);
+        Optional<WandView> view = WandVisCompat.wandView(wand);
         long centivis = WandCharge.total(view.orElseThrow().visCentivis());
         long left = TechnomWandRods.charge(wand);
         helper.assertTrue(centivis * WandCharge.Q_PER_CENTIVIS + left == budget,
                 "energy is not conserved: " + centivis + " centivis plus " + left + " Q against " + budget);
         helper.assertTrue(centivis == 60, "expected 60 centivis, got " + centivis);
-        helper.assertTrue(view.get().visCentivis().get(VisChannel.PERDITIO) == 10,
+        helper.assertTrue(view.get().visCentivis().get(BuiltinAspects.PERDITIO) == 10,
                 "the six primals should fill together");
 
         // A full wand buffers nothing more and converts nothing: no free vis, no lost energy.
@@ -129,7 +130,7 @@ public final class WandChargeGameTests {
         helper.assertTrue(TechnomWandRods.charge(sceptre) == 5000, "the buffer did not take the energy");
 
         WandChargeEvents.chargeWand(player, sceptre);
-        long centivis = WandCharge.total(WandApi.view(sceptre).orElseThrow().visCentivis());
+        long centivis = WandCharge.total(WandVisCompat.wandView(sceptre).orElseThrow().visCentivis());
         helper.assertTrue(centivis * WandCharge.Q_PER_CENTIVIS + TechnomWandRods.charge(sceptre) == 5000,
                 "energy is not conserved through the sceptre charge");
         helper.assertTrue(TechnomWrench.isWrench(sceptre), "a technoturge wand should count as a wrench");

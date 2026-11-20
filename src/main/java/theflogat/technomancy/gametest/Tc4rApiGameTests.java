@@ -3,7 +3,7 @@ package theflogat.technomancy.gametest;
 import dev.tc4port.thaumcraft.api.aspect.AspectApi;
 import dev.tc4port.thaumcraft.api.aspect.AspectDefinition;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
+import dev.tc4port.thaumcraft.api.aspect.BuiltinAspects;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
@@ -30,16 +30,15 @@ public final class Tc4rApiGameTests {
         AspectDefinition definition = AspectApi.get(ignis);
         helper.assertTrue(definition != null, "AspectApi has no definition for " + ignis);
         helper.assertTrue(definition.primal(), ignis + " is not primal: " + definition.components());
-        helper.assertTrue(definition.visChannel().equals(Optional.of(VisChannel.IGNIS)),
-                ignis + " is not bound to the IGNIS vis channel: " + definition.visChannel());
+        helper.assertTrue(definition.id().equals(ignis), ignis + " has the wrong id: " + definition.id());
 
-        Set<AspectId> channels = Arrays.stream(VisChannel.values())
-                .map(VisChannel::aspectId).collect(Collectors.toSet());
-        helper.assertTrue(AspectApi.primals().equals(channels),
-                "primal set differs from the six vis channels: " + AspectApi.primals());
+        helper.assertTrue(AspectApi.primals().containsAll(java.util.List.of(BuiltinAspects.AER,
+                BuiltinAspects.TERRA, BuiltinAspects.IGNIS, BuiltinAspects.AQUA,
+                BuiltinAspects.ORDO, BuiltinAspects.PERDITIO)),
+                "the six primal aspects are missing from AspectApi");
 
         AspectId lux = AspectId.parse("lux");
-        helper.assertTrue(AspectApi.combination(VisChannel.AER.aspectId(), ignis).equals(Optional.of(lux)),
+        helper.assertTrue(AspectApi.combination(BuiltinAspects.AER, ignis).equals(Optional.of(lux)),
                 "aer + ignis did not combine into " + lux);
 
         // Generation 0 is the class-initialisation snapshot; >= 1 proves the server data-pack

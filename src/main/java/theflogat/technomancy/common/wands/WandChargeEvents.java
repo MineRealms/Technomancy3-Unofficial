@@ -1,12 +1,14 @@
 package theflogat.technomancy.common.wands;
 
 import dev.tc4port.thaumcraft.api.aspect.VisAction;
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
+import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.aspect.VisCost;
-import dev.tc4port.thaumcraft.api.wand.VisTransferResult;
-import dev.tc4port.thaumcraft.api.wand.WandApi;
-import dev.tc4port.thaumcraft.api.wand.WandCarrierItem;
 import dev.tc4port.thaumcraft.api.wand.WandView;
+import dev.tc4port.thaumcraft.api.vis.VisAccess;
+import dev.tc4port.thaumcraft.api.vis.VisChangeRequest;
+import dev.tc4port.thaumcraft.api.vis.VisChangeResult;
+import dev.tc4port.thaumcraft.api.vis.VisStorage;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandVisStages;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,8 +47,7 @@ import theflogat.technomancy.Technomancy;
  * Server-side charging of wands that carry a Technomancy rod.
  *
  * <p>Every {@value #CHARGE_INTERVAL} ticks each wand in a player's inventory with one of the two
- * rods turns its energy buffer into Vis through {@link WandApi#insert(ServerPlayer, ItemStack,
- * VisCost, VisAction)}; an energized-rod wand first tops the buffer up from Forge Energy items in
+ * rods turns its energy buffer into Vis through the wand VisStorage capability; an energized-rod wand first tops the buffer up from Forge Energy items in
  * the same inventory ({@code ElectricWandUpdate}). Inventory-wide rather than TC4R's held-only
  * {@code WandBehaviorApi}, because TC4's {@code ItemWandCasting.onUpdate} drove the rod update
  * from any inventory slot.</p>
@@ -73,7 +74,7 @@ public final class WandChargeEvents {
     //? if forge {
     private static void attach(AttachCapabilitiesEvent<ItemStack> event) {
         ItemStack stack = event.getObject();
-        if (stack.getItem() instanceof WandCarrierItem) {
+        if (WandVisCompat.wandView(stack).isPresent()) {
             event.addCapability(CAPABILITY_KEY, new Provider(stack));
         }
     }
@@ -128,7 +129,7 @@ public final class WandChargeEvents {
      * @return {@code true} if the stack changed
      */
     public static boolean chargeWand(ServerPlayer player, ItemStack wand) {
-        if (!(wand.getItem() instanceof WandCarrierItem) || wand.getCount() != 1) {
+        if (!WandVisCompat.wandView(wand).isPresent() || wand.getCount() != 1) {
             return false;
         }
         Optional<WandView> view = TechnomWandRods.view(wand);
@@ -139,7 +140,7 @@ public final class WandChargeEvents {
         if (!electric && !view.get().rod().equals(TechnomWandRods.TECHNOTURGE)) {
             return false;
         }
-        Map<VisChannel, Integer> room = WandCharge.room(view.get().visCentivis(), view.get().capacityCentivis());
+        Map<AspectId, Integer> room = WandCharge.room(view.get().visCentivis(), view.get().capacityCentivis());
         room.replaceAll((channel, free) -> Math.min(free, WandCharge.MAX_CENTIVIS_PER_CHANNEL_PER_PASS));
         long before = TechnomWandRods.charge(wand);
         long buffer = before;
@@ -147,11 +148,21 @@ public final class WandChargeEvents {
         if (electric && wanted > 0) {
             buffer += pullFromBatteries(player.getInventory(), wanted);
         }
-        Map<VisChannel, Integer> plan = WandCharge.plan(room, buffer, WandCharge.MAX_CENTIVIS_PER_CHANNEL_PER_PASS);
+        Map<AspectId, Integer> plan = WandCharge.plan(room, buffer, WandCharge.MAX_CENTIVIS_PER_CHANNEL_PER_PASS);
         boolean moved = false;
         if (!plan.isEmpty()) {
-            VisTransferResult result = WandApi.insert(player, wand, VisCost.ofCentivis(plan), VisAction.EXECUTE);
-            long spent = WandCharge.total(result.transferredCentivis()) * WandCharge.Q_PER_CENTIVIS;
+            VisStorage storage = WandVisCompat.wandStorage(wand).orElse(null);
+            if (storage == null) {
+                return false;
+            }
+            var request = VisChangeRequest.insert(WandVisStages.INSERT, VisCost.ofCentivis(plan));
+            VisChangeResult result = storage.change(VisAccess.of(player), request, VisAction.EXECUTE,
+                    true, false, ignored -> true);
+            Map<AspectId, Integer> settled = new java.util.LinkedHashMap<>();
+            for (AspectId channel : plan.keySet()) {
+                settled.put(channel, result.settled(channel));
+            }
+            long spent = WandCharge.total(settled) * WandCharge.Q_PER_CENTIVIS;
             buffer -= spent;
             moved = spent > 0;
         }
@@ -175,7 +186,7 @@ public final class WandChargeEvents {
             if (got >= wanted) {
                 break;
             }
-            if (battery.isEmpty() || battery.getItem() instanceof WandCarrierItem) {
+            if (battery.isEmpty() || WandVisCompat.wandView(battery).isPresent()) {
                 continue;
             }
             IEnergyStorage storage = theflogat.technomancy.common.platform.CapabilityAccess.energy(battery);

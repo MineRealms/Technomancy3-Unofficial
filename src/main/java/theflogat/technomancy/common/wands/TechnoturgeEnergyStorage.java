@@ -1,6 +1,6 @@
 package theflogat.technomancy.common.wands;
 
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
+import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.wand.WandView;
 import java.util.Map;
 import java.util.Optional;
@@ -75,7 +75,7 @@ public final class TechnoturgeEnergyStorage implements IEnergyStorage {
         return view().isPresent();
     }
 
-    private static long sum(Map<VisChannel, Integer> values) {
+    private static long sum(Map<AspectId, Integer> values) {
         return WandCharge.total(values);
     }
 

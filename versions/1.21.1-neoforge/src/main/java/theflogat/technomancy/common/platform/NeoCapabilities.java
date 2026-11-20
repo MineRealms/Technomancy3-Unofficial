@@ -1,6 +1,5 @@
 package theflogat.technomancy.common.platform;
 
-import dev.tc4port.thaumcraft.api.wand.WandCarrierItem;
 import java.util.function.Function;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -31,13 +30,12 @@ public final class NeoCapabilities {
                 (machine, side) -> machine.itemView(side));
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, TechnomBlockEntities.FLUX_LAMP.get(),
                 (machine, side) -> machine.fluidView());
-        BuiltInRegistries.ITEM.forEach(item -> {
-            if (item instanceof WandCarrierItem) {
+        // Register broadly and decide per stack in the provider: querying TC4R's wand data maps
+        // during RegisterCapabilitiesEvent would fail with "Unregistered data map wand_rods".
+        BuiltInRegistries.ITEM.forEach(item ->
                 event.registerItem(Capabilities.EnergyStorage.ITEM, (stack, context) ->
                         TechnomWandRods.hasRod(stack, TechnomWandRods.TECHNOTURGE)
-                                ? new TechnoturgeEnergyStorage(stack) : null, item);
-            }
-        });
+                                ? new TechnoturgeEnergyStorage(stack) : null, item));
         if (GtceuPresence.isLoaded()) {
             theflogat.technomancy.compat.gtceu.NeoGtCapabilities.register(event);
         }

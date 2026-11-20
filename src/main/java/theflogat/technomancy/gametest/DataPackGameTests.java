@@ -7,7 +7,7 @@ import dev.tc4port.thaumcraft.api.aspect.AspectAmounts;
 import dev.tc4port.thaumcraft.api.aspect.AspectApi;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.aspect.AspectQueryApi;
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
+
 import dev.tc4port.thaumcraft.api.recipe.ArcaneCraftingRecipe;
 import dev.tc4port.thaumcraft.api.research.ResearchApi;
 import dev.tc4port.thaumcraft.api.research.ResearchCategoryKey;
@@ -283,9 +283,9 @@ public final class DataPackGameTests {
                         expected.id() + " is gated on " + arcane.research().key()
                                 + " instead of " + expected.research()
                                 + "; a misspelled \"research\" field is silently treated as absent");
-                Map<VisChannel, Integer> vis = new LinkedHashMap<>();
+                Map<AspectId, Integer> vis = new LinkedHashMap<>();
                 expected.vis().forEach((channel, amount) -> vis.put(
-                        VisChannel.valueOf(channel.toUpperCase(java.util.Locale.ROOT)), amount));
+                        AspectId.parse(channel), amount));
                 helper.assertTrue(arcane.vis().equals(vis),
                         expected.id() + " costs " + arcane.vis() + " instead of " + vis);
             }
